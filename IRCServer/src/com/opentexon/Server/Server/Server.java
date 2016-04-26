@@ -1,3 +1,7 @@
+/**
+ * This software is licensed under the MIT license.
+ * If you wish to modify this software please give credit and link to the git: https://github.com/Moudoux/OTIRC.
+ */
 package com.opentexon.Server.Server;
 
 import java.io.BufferedReader;
@@ -13,6 +17,12 @@ import com.opentexon.Server.Main.Main;
 import com.opentexon.Server.Server.Packets.P00PacketLogin;
 import com.opentexon.Utils.WebHelper;
 
+/**
+ * The actual server and the listener for clients
+ * 
+ * @author Alexander
+ *
+ */
 public class Server {
 
 	public ArrayList<User> users = new ArrayList<User>();
@@ -26,11 +36,6 @@ public class Server {
 	public MessageManager messages = new MessageManager();
 
 	public int totalLogins = 0;
-
-	/**
-	 * The server version
-	 */
-	public String version = "1.0.5";
 
 	/**
 	 * Max connections from the same ip

@@ -1,28 +1,17 @@
+/**
+ * This software is licensed under the MIT license.
+ * If you wish to modify this software please give credit and link to the git: https://github.com/Moudoux/OTIRC.
+ */
 package com.opentexon.Server.Server.Commands;
-
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import com.opentexon.Server.Main.Main;
 import com.opentexon.Server.Server.User;
+import com.opentexon.Utils.StringUtils;
 
 public class CommandUnban {
 
-	private boolean isIP(String line) {
-		boolean result = false;
-		Pattern p = Pattern.compile(
-				"^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$");
-		for (String s : line.split(" ")) {
-			Matcher m = p.matcher(s);
-			if (m.find()) {
-				result = true;
-			}
-		}
-		return result;
-	}
-
 	private void runCommand(User user, String line, boolean isConsole) {
-		if (isIP(line.split(" ")[1])) {
+		if (StringUtils.isIPAddress(line.split(" ")[1])) {
 			if (Main.getInstance().getServer().bannedUsers.contains(line.split(" ")[1])) {
 				Main.getInstance().getServer().bannedUsers.remove(line.split(" ")[1]);
 			}

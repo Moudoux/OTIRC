@@ -1,3 +1,7 @@
+/**
+ * This software is licensed under the MIT license.
+ * If you wish to modify this software please give credit and link to the git: https://github.com/Moudoux/OTIRC.
+ */
 package com.opentexon.Crypto;
 
 import java.io.BufferedReader;
@@ -7,60 +11,19 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLConnection;
 
+import com.opentexon.Utils.StringUtils;
+
 /**
  * Encrypts all messages between the server and clients. The messages are
  * encrypted with a one time key via a external encryption server.
+ * 
+ * Note: As you can see, the messages are sent unencrypted to the encryption
+ * server. But they are transferred over SSL.
  * 
  * @author Alexander
  *
  */
 public class CryptoManager {
-
-	private static String translate(String message) {
-		String result = message;
-
-		result = result.replace("&1", "§1");
-		result = result.replace("&9", "§9");
-		result = result.replace("&3", "§3");
-		result = result.replace("&b", "§b");
-		result = result.replace("&4", "§4");
-		result = result.replace("&c", "§c");
-		result = result.replace("&e", "§e");
-		result = result.replace("&6", "§6");
-		result = result.replace("&2", "§2");
-		result = result.replace("&a", "§a");
-		result = result.replace("&5", "§5");
-		result = result.replace("&d", "§d");
-		result = result.replace("&f", "§f");
-		result = result.replace("&7", "§7");
-		result = result.replace("&8", "§8");
-		result = result.replace("&0", "§0");
-
-		return result;
-	}
-
-	private static String translate1(String message) {
-		String result = message;
-
-		result = result.replace("§1", "&1");
-		result = result.replace("§9", "&9");
-		result = result.replace("§3", "&3");
-		result = result.replace("§b", "&b");
-		result = result.replace("§4", "&4");
-		result = result.replace("§c", "&c");
-		result = result.replace("§e", "&e");
-		result = result.replace("§6", "&6");
-		result = result.replace("§2", "&2");
-		result = result.replace("§a", "&a");
-		result = result.replace("§5", "&5");
-		result = result.replace("§d", "&d");
-		result = result.replace("§f", "&f");
-		result = result.replace("§7", "&7");
-		result = result.replace("§8", "&8");
-		result = result.replace("§0", "&0");
-
-		return result;
-	}
 
 	public static String getPage(String url, String message) {
 		String result = "";
@@ -89,13 +52,15 @@ public class CryptoManager {
 	}
 
 	public static String decode(String message) {
+		// If you wish to use your own encryption servers, make sure to use SSL
 		String url = "https://dl.opentexon.com/.irc/crypto.php?ref=irc&action=decode";
-		return getPage(url, translate(message));
+		return getPage(url, StringUtils.translateColorCodesBack(message));
 	}
 
 	public static String encode(String message) {
+		// If you wish to use your own encryption servers, make sure to use SSL
 		String url = "https://dl.opentexon.com/.irc/crypto.php?ref=irc&action=encode";
-		return getPage(url, translate1(message));
+		return getPage(url, StringUtils.translateColorCodes(message));
 	}
 
 }

@@ -1,5 +1,10 @@
+/**
+ * This software is licensed under the MIT license.
+ * If you wish to modify this software please give credit and link to the git: https://github.com/Moudoux/OTIRC.
+ */
 package com.opentexon.Client.Main;
 
+import java.util.Calendar;
 import java.util.Scanner;
 
 import com.opentexon.Client.Client.Client;
@@ -41,8 +46,14 @@ public class Main {
 			@Override
 			public void run() {
 				try {
-					System.out.println("Welcome to the IRC client version: " + version + "\nCopyright"
-							+ " © Alexander 2016 All Rights Reserved");
+					Calendar now = Calendar.getInstance();
+					System.out.println("Welcome to the IRC client version: " + version + "\nCopyright" + " © Alexander "
+							+ String.valueOf(now.get(Calendar.YEAR)) + " All Rights Reserved");
+
+					// Do NOT remove the following line, it has to be here
+					// because of the MIT license
+					System.out.println("Source and executables for client and server avaiable at: \n"
+							+ "https://github.com/Moudoux/OTIRC");
 
 					System.out.println("Please authenticate by typing /join [IP] [Port] [Username] [Channel]");
 					System.out.println("Example: /join 81.8.246.246 6687 John #Talk");

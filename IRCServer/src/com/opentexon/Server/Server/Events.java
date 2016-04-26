@@ -1,3 +1,7 @@
+/**
+ * This software is licensed under the MIT license.
+ * If you wish to modify this software please give credit and link to the git: https://github.com/Moudoux/OTIRC.
+ */
 package com.opentexon.Server.Server;
 
 import com.opentexon.Server.Main.Main;
@@ -16,7 +20,8 @@ import com.opentexon.Server.Server.Commands.CommandUsers;
 import com.opentexon.Server.Server.Commands.CommandWhois;
 
 /**
- * All events
+ * Main event file, all triggers like Commands, Input from console, Input from
+ * users etc will be processed here.
  * 
  * @author Alexander
  *
@@ -100,12 +105,11 @@ public class Events {
 			CommandUnban j = new CommandUnban(isConsole ? null : user, line, isConsole);
 		} else if (line.startsWith("ver")) {
 			if (isConsole) {
-				Main.getInstance().getLogger()
-						.printWarningMessage(Main.getInstance().getServer().messages.ServerVersion() + " "
-								+ Main.getInstance().getServer().version);
+				Main.getInstance().getLogger().printWarningMessage(
+						Main.getInstance().getServer().messages.ServerVersion() + " " + Main.getInstance().version);
 			} else {
-				user.WriteToClient(Main.getInstance().getServer().messages.ServerVersion() + " "
-						+ Main.getInstance().getServer().version);
+				user.WriteToClient(
+						Main.getInstance().getServer().messages.ServerVersion() + " " + Main.getInstance().version);
 			}
 		} else if (line.startsWith("channel") && CountArgs(line) >= 2 && isConsole) {
 			for (User u : Main.getInstance().getServer().users) {

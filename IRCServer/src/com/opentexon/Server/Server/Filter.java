@@ -1,9 +1,20 @@
+/**
+ * This software is licensed under the MIT license.
+ * If you wish to modify this software please give credit and link to the git: https://github.com/Moudoux/OTIRC.
+ */
 package com.opentexon.Server.Server;
 
 import java.util.ArrayList;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+/**
+ * Translates a string. It hides links, hides ip addresses, checks for
+ * swearwords
+ * 
+ * @author Alexander
+ *
+ */
 public class Filter {
 
 	private boolean hideLinks = true;

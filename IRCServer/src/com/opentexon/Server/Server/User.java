@@ -1,3 +1,7 @@
+/**
+ * This software is licensed under the MIT license.
+ * If you wish to modify this software please give credit and link to the git: https://github.com/Moudoux/OTIRC.
+ */
 package com.opentexon.Server.Server;
 
 import java.io.BufferedReader;
@@ -9,6 +13,12 @@ import java.net.Socket;
 import com.opentexon.Crypto.CryptoManager;
 import com.opentexon.Server.Main.Main;
 
+/**
+ * User object with listener
+ * 
+ * @author Alexander
+ *
+ */
 public class User {
 
 	public String Username;

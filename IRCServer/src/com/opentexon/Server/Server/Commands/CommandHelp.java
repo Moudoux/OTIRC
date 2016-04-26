@@ -1,3 +1,7 @@
+/**
+ * This software is licensed under the MIT license.
+ * If you wish to modify this software please give credit and link to the git: https://github.com/Moudoux/OTIRC.
+ */
 package com.opentexon.Server.Server.Commands;
 
 import com.opentexon.Server.Main.Main;
@@ -12,14 +16,16 @@ public class CommandHelp {
 		Main.getInstance().getServer().e.printMessageToUserOrConsole(user, isConsole,
 				"/kick [Username] [Message] (OP/Console)");
 		Main.getInstance().getServer().e.printMessageToUserOrConsole(user, isConsole,
-				"/ban [Username] [Message] (OP/Console)");
+				"/ban [Username/IP] [Message] (OP/Console)");
 		Main.getInstance().getServer().e.printMessageToUserOrConsole(user, isConsole,
 				"/mute [Username] [Message] (OP/Console)");
 
-		Main.getInstance().getServer().e.printMessageToUserOrConsole(user, isConsole, "/op [Username] (OP/Console)");
-		Main.getInstance().getServer().e.printMessageToUserOrConsole(user, isConsole, "/deop [Username] (OP/Console)");
+		Main.getInstance().getServer().e.printMessageToUserOrConsole(user, isConsole, "/op [Username/IP] (OP/Console)");
+		Main.getInstance().getServer().e.printMessageToUserOrConsole(user, isConsole,
+				"/deop [Username/IP] (OP/Console)");
 		Main.getInstance().getServer().e.printMessageToUserOrConsole(user, isConsole, "/whois [Username] (OP/Console)");
-		Main.getInstance().getServer().e.printMessageToUserOrConsole(user, isConsole, "/unban [Username] (OP/Console)");
+		Main.getInstance().getServer().e.printMessageToUserOrConsole(user, isConsole,
+				"/unban [Username/IP] (OP/Console)");
 		Main.getInstance().getServer().e.printMessageToUserOrConsole(user, isConsole, "/banlist (OP/Console)");
 		Main.getInstance().getServer().e.printMessageToUserOrConsole(user, isConsole, "/msg [Username] [Message]");
 		Main.getInstance().getServer().e.printMessageToUserOrConsole(user, isConsole, "/users");
