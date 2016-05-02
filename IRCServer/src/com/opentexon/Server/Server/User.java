@@ -36,6 +36,10 @@ public class User {
 	private int swearWarnings = 0;
 	private int maxSwear = 3;
 
+	private String lastMsg = "";
+	private int maxRepeat = 3;
+	private int repeatWarnings = 0;
+
 	public boolean isEncrypted = false;
 
 	private void Reciver() {
@@ -58,28 +62,63 @@ public class User {
 						if (f.isSwearWord(line)) {
 							swearWarnings += 1;
 							if (swearWarnings > maxSwear) {
-								this.WriteToClient("You got banned for swearing");
-								Main.getInstance().getServer().bannedUsers.add(this.Ip);
+								this.WriteToClient("You got tempbanned for swearing");
+								Main.getInstance().getServer().tempBanUser(this.Ip, 5040);
+								this.WriteToClient("You will be unbanned at: "
+										+ Main.getInstance().getServer().getUnbanTime(this.Ip));
 								Main.getInstance().getServer().e
-										.NotifyOpsAndConsole("Banned " + this.Username + " for swearing");
+										.NotifyOpsAndConsole("Tempbanned " + this.Username + " for swearing", null);
 								this.Destroy();
 							} else {
-								Main.getInstance().getServer().e
-										.NotifyOpsAndConsole("User " + this.Username + " was swearing");
 								if (maxSwear == swearWarnings) {
 									this.WriteToClient("This is your final warning, stop swearing");
 								} else {
-									this.WriteToClient("Don't swear, you will be banned if you continue, warning "
+									this.WriteToClient("Don't swear, you will be tempbanned if you continue, warning "
 											+ String.valueOf(swearWarnings) + "/" + String.valueOf(maxSwear));
 								}
 							}
 						} else {
-							line = f.proccessIPAddresses(line);
-							line = f.proccessLinks(line);
-							Main.getInstance().getServer().onReciveFromClient(line, this);
+
+							boolean allowRecive = true;
+
+							if (lastMsg.equals("")) {
+								lastMsg = line;
+							} else {
+								if (lastMsg.toLowerCase().equals(line.toLowerCase())) {
+									allowRecive = false;
+									repeatWarnings += 1;
+									if (repeatWarnings == maxRepeat) {
+										this.WriteToClient("This is your final warning, stop spamming");
+									} else {
+										if (repeatWarnings > maxRepeat) {
+											this.WriteToClient("You got tempbanned for spamming");
+											Main.getInstance().getServer().tempBanUser(this.Ip, 1440);
+											this.WriteToClient("You will be unbanned at: "
+													+ Main.getInstance().getServer().getUnbanTime(this.Ip));
+											Main.getInstance().getServer().e.NotifyOpsAndConsole(
+													"Tempbanned " + this.Username + " for spamming", null);
+											this.Destroy();
+										} else {
+											this.WriteToClient(
+													"Don't spam, you will be tempbanned if you continue, warning "
+															+ String.valueOf(repeatWarnings) + "/"
+															+ String.valueOf(maxRepeat));
+										}
+									}
+								} else {
+									lastMsg = line;
+									repeatWarnings = 0;
+								}
+							}
+
+							if (allowRecive) {
+								line = f.proccessIPAddresses(line);
+								line = f.proccessLinks(line);
+								Main.getInstance().getServer().onReciveFromClient(line, this);
+							}
 						}
 					} else {
-						this.WriteToClient(Main.getInstance().getServer().messages.muted());
+						this.WriteToClient("You are muted");
 					}
 				}
 			}
@@ -106,34 +145,10 @@ public class User {
 		}
 	}
 
-	public String removeCodes(String message) {
-		String result = message;
-
-		result = result.replace("§1", "");
-		result = result.replace("§9", "");
-		result = result.replace("§3", "");
-		result = result.replace("§b", "");
-		result = result.replace("§4", "");
-		result = result.replace("§c", "");
-		result = result.replace("§e", "");
-		result = result.replace("§6", "");
-		result = result.replace("§2", "");
-		result = result.replace("§a", "");
-		result = result.replace("§5", "");
-		result = result.replace("§d", "");
-		result = result.replace("§f", "");
-		result = result.replace("§7", "");
-		result = result.replace("§8", "");
-		result = result.replace("§0", "");
-
-		return result;
-	}
-
 	public void WriteToClient(String message) {
 		try {
-			if (!isMc) {
-				message = removeCodes(message);
-			}
+			Filter f = new Filter();
+			message = f.proccessIPAddresses(message);
 			if (isEncrypted) {
 				message = CryptoManager.encode(message);
 			}

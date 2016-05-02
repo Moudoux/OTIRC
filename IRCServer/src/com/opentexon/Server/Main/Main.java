@@ -26,7 +26,7 @@ public class Main {
 	/**
 	 * The server version
 	 */
-	public String version = "1.0.6";
+	public String version = "1.0.7";
 
 	public String Name;
 

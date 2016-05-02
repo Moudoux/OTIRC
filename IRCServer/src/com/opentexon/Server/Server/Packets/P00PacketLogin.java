@@ -13,6 +13,11 @@ public class P00PacketLogin {
 
 	private void kickUser(String message, User user) {
 		user.WriteToClient(message);
+
+		if (Main.getInstance().getServer().isTempBanned(user.Ip)) {
+			user.WriteToClient("You will be unbanned at: " + Main.getInstance().getServer().getUnbanTime(user.Ip));
+		}
+
 		user.Destroy();
 	}
 
@@ -21,24 +26,21 @@ public class P00PacketLogin {
 
 		Main.getInstance().getServer().totalLogins += 1;
 
-		Main.getInstance().getLogger().printInfoMessage(Main.getInstance().getServer().messages.joinMessage4(user));
+		Main.getInstance().getLogger().printInfoMessage(
+				"User " + user.Username + "@" + user.socket.getInetAddress().toString().substring(1) + " has joined");
 
-		user.WriteToClient(Main.getInstance().getServer().messages.joinMessage7());
+		user.WriteToClient("Welcome to " + Main.getInstance().getServer().ServerName);
 
 		Main.getInstance().getServer().e.onJoin(user);
 	}
 
 	public P00PacketLogin(String line, Socket socket, boolean isEncrypted) {
-		if (socket.isClosed()) {
-			Main.getInstance().getLogger().printErrorMessage(Main.getInstance().getServer().messages.joinMessage());
-			return;
-		}
-
 		boolean invalidArgs = false;
 
 		String ori = line;
 
 		line = line.replace("JOIN ", "");
+		line = line.replace("join ", "");
 		String username = line.split(" ")[0];
 		String channel = line.split(" ")[1];
 
@@ -83,6 +85,8 @@ public class P00PacketLogin {
 			isBanned = true;
 		}
 
+		boolean isTempBanned = Main.getInstance().getServer().isTempBanned(user.Ip);
+
 		boolean maxConnections = false;
 		int connections = 0;
 
@@ -97,19 +101,23 @@ public class P00PacketLogin {
 		}
 
 		if (isBanned) {
-			kickUser(Main.getInstance().getServer().messages.joinMessage3(), user);
+			kickUser("You have been permanently banned from this server", user);
 		} else {
-			if (invalidArgs) {
-				kickUser(Main.getInstance().getServer().messages.joinMessage5(), user);
+			if (isTempBanned) {
+				kickUser("You have been temporarily banned from this server", user);
 			} else {
-				if (userExists) {
-					kickUser(Main.getInstance().getServer().messages.joinMessage6(), user);
+				if (invalidArgs) {
+					kickUser("Invalid login arguments", user);
 				} else {
-					if (maxConnections) {
-						kickUser(Main.getInstance().getServer().messages.joinMessage8(), user);
+					if (userExists) {
+						kickUser("A user with your username has alredy logged in", user);
 					} else {
-						user.WriteToClient("Successfully authenticated");
-						addUser(user);
+						if (maxConnections) {
+							kickUser("You have reached the maximum connections from your ip", user);
+						} else {
+							user.WriteToClient("Successfully authenticated");
+							addUser(user);
+						}
 					}
 				}
 			}

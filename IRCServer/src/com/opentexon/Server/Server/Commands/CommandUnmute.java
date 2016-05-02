@@ -7,7 +7,7 @@ package com.opentexon.Server.Server.Commands;
 import com.opentexon.Server.Main.Main;
 import com.opentexon.Server.Server.User;
 
-public class CommandUnmute {
+public class CommandUnmute extends Command {
 
 	private void runCommand(User user, String line, boolean isConsole) {
 		boolean found = false;
@@ -15,14 +15,13 @@ public class CommandUnmute {
 		for (User u : Main.getInstance().getServer().users) {
 			if (u.Username.toLowerCase().equals(line.split(" ")[1].toLowerCase())) {
 				u.isMuted = false;
-				u.WriteToClient(Main.getInstance().getServer().messages.unmuteMessage(user, line, isConsole, u));
 
-				Main.getInstance().getServer().e.printMessageToUserOrConsole(user, isConsole,
-						Main.getInstance().getServer().messages.unmuteMessage1(user, line, isConsole, u));
+				String executor = isConsole ? "Console" : user.Username;
 
-				Main.getInstance().getServer().e.NotifyOpsAndConsole(
-						Main.getInstance().getServer().messages.unmuteMessage2(user, line, isConsole, u));
-				;
+				u.WriteToClient(executor + " unmuted you");
+
+				this.sendMessage("Unmuted " + u.Username);
+				this.notifyOpsAndConsole(executor + " unmuted " + u.Username);
 
 				found = true;
 				break;
@@ -30,12 +29,13 @@ public class CommandUnmute {
 		}
 
 		if (!found) {
-			Main.getInstance().getServer().e.printMessageToUserOrConsole(user, isConsole,
-					Main.getInstance().getServer().messages.userNotFound(user, line, isConsole));
+			this.userNotFound();
 		}
 	}
 
 	public CommandUnmute(User user, String line, boolean isConsole) {
+		super(isConsole ? null : user);
+
 		boolean hasPerm = false;
 		if (isConsole) {
 			hasPerm = true;
@@ -49,16 +49,10 @@ public class CommandUnmute {
 			if (Main.getInstance().getServer().e.CountArgs(line) == 1) {
 				runCommand(isConsole ? null : user, line, isConsole);
 			} else {
-				String correctUssage = Main.getInstance().getServer().messages.correctUssage(user, line, isConsole)
-						+ " /unmute [Username]";
-				if (isConsole) {
-					Main.getInstance().getLogger().printWarningMessage(correctUssage);
-				} else {
-					user.WriteToClient(correctUssage);
-				}
+				this.correctUssage("/unmute [Username]");
 			}
 		} else {
-			user.WriteToClient(Main.getInstance().getServer().messages.permissionDenied(user, line, isConsole));
+			this.permissionDenied();
 		}
 	}
 

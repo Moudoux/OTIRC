@@ -7,29 +7,28 @@ package com.opentexon.Server.Server.Commands;
 import com.opentexon.Server.Main.Main;
 import com.opentexon.Server.Server.User;
 
-public class CommandMute {
+public class CommandMute extends Command {
 
 	private void runCommand(User user, String line, boolean isConsole) {
-		boolean found = false;
-
 		String reason = Main.getInstance().getServer().e.CountArgs(line) >= 2
 				? line.replace(line.split(" ")[0] + " " + line.split(" ")[1] + " ", "") : "";
 
+		boolean found = false;
+
 		for (User u : Main.getInstance().getServer().users) {
 			if (u.Username.toLowerCase().equals(line.split(" ")[1].toLowerCase())) {
-				u.WriteToClient(Main.getInstance().getServer().messages.muteMessage(user, line, isConsole, u));
-
-				Main.getInstance().getServer().e.printMessageToUserOrConsole(user, isConsole,
-						Main.getInstance().getServer().messages.muteMessage1(user, line, isConsole, u));
-
 				u.isMuted = true;
 
+				String executor = isConsole ? "Console" : user.Username;
+
+				u.WriteToClient(executor + " muted you");
+
 				if (!reason.equals("")) {
-					u.WriteToClient("§7Mute reason: §c" + reason);
+					u.WriteToClient("Reason: " + reason);
 				}
 
-				Main.getInstance().getServer().e.NotifyOpsAndConsole(
-						Main.getInstance().getServer().messages.muteMessage2(user, line, isConsole, u));
+				this.sendMessage("Muted " + u.Username);
+				this.notifyOpsAndConsole(executor + " muted " + u.Username);
 
 				found = true;
 				break;
@@ -37,12 +36,13 @@ public class CommandMute {
 		}
 
 		if (!found) {
-			Main.getInstance().getServer().e.printMessageToUserOrConsole(user, isConsole,
-					Main.getInstance().getServer().messages.userNotFound(user, line, isConsole));
+			this.userNotFound();
 		}
 	}
 
 	public CommandMute(User user, String line, boolean isConsole) {
+		super(isConsole ? null : user);
+
 		boolean hasPerm = false;
 		if (isConsole) {
 			hasPerm = true;
@@ -56,16 +56,10 @@ public class CommandMute {
 			if (Main.getInstance().getServer().e.CountArgs(line) >= 1) {
 				runCommand(isConsole ? null : user, line, isConsole);
 			} else {
-				String correctUssage = Main.getInstance().getServer().messages.correctUssage(user, line, isConsole)
-						+ " /mute [Username] [Message]";
-				if (isConsole) {
-					Main.getInstance().getLogger().printWarningMessage(correctUssage);
-				} else {
-					user.WriteToClient(correctUssage);
-				}
+				this.correctUssage("/mute [Username] [Reason]");
 			}
 		} else {
-			user.WriteToClient(Main.getInstance().getServer().messages.permissionDenied(user, line, isConsole));
+			this.permissionDenied();
 		}
 	}
 

@@ -7,21 +7,32 @@ package com.opentexon.Server.Server.Commands;
 import com.opentexon.Server.Main.Main;
 import com.opentexon.Server.Server.User;
 
-public class CommandBanlist {
+public class CommandBanlist extends Command {
 
 	private void runCommand(User user, String line, boolean isConsole) {
-		Main.getInstance().getServer().e.printMessageToUserOrConsole(user, isConsole, "§7== §6Banned users §7==");
+		this.sendMessage("== Banned users ==");
+
 		int banned = 0;
+		String bannedUsers = "";
 		for (String ip : Main.getInstance().getServer().bannedUsers) {
 			banned += 1;
-			Main.getInstance().getServer().e.printMessageToUserOrConsole(user, isConsole, ip);
+			if (bannedUsers.equals("")) {
+				bannedUsers = ip;
+			} else {
+				bannedUsers = bannedUsers + ", " + ip;
+			}
 		}
+
 		if (banned == 0) {
-			Main.getInstance().getServer().e.printMessageToUserOrConsole(user, isConsole, "There is no banned users");
+			this.sendMessage("There are no banned users");
+		} else {
+			this.sendMessage(bannedUsers);
 		}
 	}
 
 	public CommandBanlist(User user, String line, boolean isConsole) {
+		super(isConsole ? null : user);
+
 		boolean hasPerm = false;
 		if (isConsole) {
 			hasPerm = true;
@@ -35,16 +46,10 @@ public class CommandBanlist {
 			if (Main.getInstance().getServer().e.CountArgs(line) == 0) {
 				runCommand(isConsole ? null : user, line, isConsole);
 			} else {
-				String correctUssage = Main.getInstance().getServer().messages.correctUssage(user, line, isConsole)
-						+ " /banlist";
-				if (isConsole) {
-					Main.getInstance().getLogger().printWarningMessage(correctUssage);
-				} else {
-					user.WriteToClient(correctUssage);
-				}
+				this.correctUssage("/banlist");
 			}
 		} else {
-			user.WriteToClient(Main.getInstance().getServer().messages.permissionDenied(user, line, isConsole));
+			this.permissionDenied();
 		}
 	}
 

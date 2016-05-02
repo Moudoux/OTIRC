@@ -8,83 +8,68 @@ import com.opentexon.Server.Main.Main;
 import com.opentexon.Server.Server.User;
 import com.opentexon.Utils.StringUtils;
 
-public class CommandBan {
+public class CommandBan extends Command {
 
-	/**
-	 * If a operator can be banned
-	 */
-	private boolean allowOPBan = false;
+	private void banIP(String ip, User executor, String reason) {
+		if (this.getServer().opUsers.contains(ip)) {
+			this.getServer().opUsers.remove(ip);
+		}
 
-	/**
-	 * Can also ban ip addresses
-	 * 
-	 * @param user
-	 * @param line
-	 * @param isConsole
-	 */
-	private void runCommand(User user, String line, boolean isConsole) {
-		if (StringUtils.isIPAddress(line.split(" ")[1])) {
-			if (!Main.getInstance().getServer().bannedUsers.contains(line.split(" ")[1])) {
-				Main.getInstance().getServer().bannedUsers.add(line.split(" ")[1]);
+		if (!this.getServer().bannedUsers.contains(ip)) {
+			this.getServer().bannedUsers.add(ip);
+		}
+
+		User bannedUser = this.getUserFromIP(ip);
+
+		if (bannedUser != null) {
+			String banner = (executor == null) ? "Console" : executor.Username;
+			bannedUser.WriteToClient("You were permanently banned by " + banner);
+
+			if (!reason.equals("")) {
+				bannedUser.WriteToClient("Ban reason: " + reason);
 			}
-			Main.getInstance().getServer().e.printMessageToUserOrConsole(user, isConsole,
-					"§cBanned ip " + line.split(" ")[1]);
-		} else {
-			boolean found = false;
 
-			User bannedUser = null;
+			bannedUser.Destroy();
+		}
+
+		if (executor != null) {
+			this.notifyOpsAndConsole(executor.Username + " permanently banned ip " + ip);
+		} else {
+			this.notifyOpsAndConsole("Console permanently banned ip " + ip);
+		}
+
+	}
+
+	private void runCommand(User user, String line, boolean isConsole) {
+		boolean found = false;
+		String ip = line.split(" ")[1];
+
+		if (StringUtils.isIPAddress(ip)) {
+			found = true;
+		} else {
+			for (User u : this.getServer().users) {
+				if (u.Username.toLowerCase().equals(ip.toLowerCase())) {
+					found = true;
+					ip = u.Ip;
+					break;
+				}
+			}
+		}
+
+		if (!found) {
+			this.userNotFound();
+		} else {
 
 			String reason = Main.getInstance().getServer().e.CountArgs(line) >= 2
 					? line.replace(line.split(" ")[0] + " " + line.split(" ")[1] + " ", "") : "";
 
-			for (User u : Main.getInstance().getServer().users) {
-				if (u.Username.toLowerCase().equals(line.split(" ")[1].toLowerCase())) {
-					found = true;
-					bannedUser = u;
-					break;
-				}
-			}
-
-			if (found) {
-
-				if (bannedUser.isOP && !allowOPBan) {
-					Main.getInstance().getServer().e.printMessageToUserOrConsole(user, isConsole,
-							"You cannot ban a operator");
-				} else {
-
-					bannedUser.WriteToClient(Main.getInstance().getServer().messages.banMessage(user, line, isConsole));
-
-					if (!reason.equals("")) {
-						bannedUser.WriteToClient("§7Ban reason: §c" + reason);
-					}
-
-					if (!Main.getInstance().getServer().bannedUsers.contains(bannedUser.Ip)) {
-						Main.getInstance().getServer().bannedUsers.add(bannedUser.Ip);
-					}
-
-					Main.getInstance().getServer().e.printMessageToUserOrConsole(user, isConsole,
-							Main.getInstance().getServer().messages.banMessage1(user, line, isConsole, bannedUser));
-
-					if (Main.getInstance().getServer().opUsers.contains(bannedUser.Ip)) {
-						Main.getInstance().getServer().opUsers.add(bannedUser.Ip);
-					}
-
-					bannedUser.Destroy();
-
-					Main.getInstance().getServer().e.NotifyOpsAndConsole(
-							Main.getInstance().getServer().messages.banMessage2(user, line, isConsole));
-				}
-
-			}
-
-			if (!found) {
-				Main.getInstance().getServer().e.printMessageToUserOrConsole(user, isConsole,
-						Main.getInstance().getServer().messages.userNotFound(user, line, isConsole));
-			}
+			banIP(ip, user, reason);
 		}
 	}
 
 	public CommandBan(User user, String line, boolean isConsole) {
+		super(isConsole ? null : user);
+
 		boolean hasPerm = false;
 
 		if (isConsole) {
@@ -99,16 +84,10 @@ public class CommandBan {
 			if (Main.getInstance().getServer().e.CountArgs(line) >= 1) {
 				runCommand(isConsole ? null : user, line, isConsole);
 			} else {
-				String correctUssage = Main.getInstance().getServer().messages.correctUssage(user, line, isConsole)
-						+ " /ban [Username] [Message]";
-				if (isConsole) {
-					Main.getInstance().getLogger().printWarningMessage(correctUssage);
-				} else {
-					user.WriteToClient(correctUssage);
-				}
+				this.correctUssage("/ban [Username/IP] [Message]");
 			}
 		} else {
-			user.WriteToClient(Main.getInstance().getServer().messages.permissionDenied(user, line, isConsole));
+			this.permissionDenied();
 		}
 	}
 

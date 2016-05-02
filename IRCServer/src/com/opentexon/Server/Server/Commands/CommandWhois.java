@@ -6,34 +6,33 @@ package com.opentexon.Server.Server.Commands;
 
 import com.opentexon.Server.Main.Main;
 import com.opentexon.Server.Server.User;
+import com.opentexon.Utils.StringUtils;
 
-public class CommandWhois {
+public class CommandWhois extends Command {
 
 	private void runCommand(User user, String line, boolean isConsole) {
-		boolean found = false;
-		for (User u : Main.getInstance().getServer().users) {
-			if (u.Username.toLowerCase().equals(line.split(" ")[1].toLowerCase())) {
-				Main.getInstance().getServer().e.printMessageToUserOrConsole(user, isConsole,
-						"== Whois " + u.Username + " ==");
-				Main.getInstance().getServer().e.printMessageToUserOrConsole(user, isConsole,
-						Main.getInstance().getServer().messages.whoisMessage1(user, line, isConsole, u));
-				Main.getInstance().getServer().e.printMessageToUserOrConsole(user, isConsole,
-						Main.getInstance().getServer().messages.whoisMessage2(user, line, isConsole, u));
+		User whoisUser = null;
 
-				Main.getInstance().getServer().e.NotifyOpsAndConsole(
-						Main.getInstance().getServer().messages.whoisMessage3(user, line, isConsole, u));
-				found = true;
-				break;
-			}
+		if (StringUtils.containsIPAddress(line)) {
+			whoisUser = this.getUserFromIP(line.split(" ")[1]);
+		} else {
+			whoisUser = this.getUserFromUsername(line.split(" ")[1]);
 		}
 
-		if (!found) {
-			Main.getInstance().getServer().e.printMessageToUserOrConsole(user, isConsole,
-					Main.getInstance().getServer().messages.userNotFound(user, line, isConsole));
+		if (whoisUser != null) {
+			this.sendMessage("== Who is " + whoisUser.Username + " ==");
+
+			this.sendMessage("IP Addresss: " + whoisUser.Ip);
+
+			this.sendMessage("Current channel: " + whoisUser.Channel);
+		} else {
+			this.userNotFound();
 		}
 	}
 
 	public CommandWhois(User user, String line, boolean isConsole) {
+		super(isConsole ? null : user);
+
 		boolean hasPerm = false;
 		if (isConsole) {
 			hasPerm = true;
@@ -47,16 +46,10 @@ public class CommandWhois {
 			if (Main.getInstance().getServer().e.CountArgs(line) == 1) {
 				runCommand(isConsole ? null : user, line, isConsole);
 			} else {
-				String correctUssage = Main.getInstance().getServer().messages.correctUssage(user, line, isConsole)
-						+ " /whois [Username]";
-				if (isConsole) {
-					Main.getInstance().getLogger().printWarningMessage(correctUssage);
-				} else {
-					user.WriteToClient(correctUssage);
-				}
+				this.correctUssage("/whois [Username]");
 			}
 		} else {
-			user.WriteToClient(Main.getInstance().getServer().messages.permissionDenied(user, line, isConsole));
+			this.permissionDenied();
 		}
 	}
 

@@ -21,32 +21,6 @@ import java.util.regex.Pattern;
 public class StringUtils {
 
 	/*
-	 * Color codes translations, § cannot be sent over the encryption
-	 */
-
-	public static String translateColorCodesBack(String message) {
-		String result = message;
-
-		result = result.replace("&1", "§1").replace("&9", "§9").replace("&3", "§3").replace("&b", "§b")
-				.replace("&4", "§4").replace("&c", "§c").replace("&e", "§e").replace("&6", "§6").replace("&2", "§2")
-				.replace("&a", "§a").replace("&5", "§5").replace("&d", "§d").replace("&f", "§f").replace("&7", "§7")
-				.replace("&8", "§8").replace("&0", "§0");
-
-		return result;
-	}
-
-	public static String translateColorCodes(String message) {
-		String result = message;
-
-		result = result.replace("§1", "&1").replace("§9", "&9").replace("§3", "&3").replace("§b", "&b")
-				.replace("§4", "&4").replace("§c", "&c").replace("§e", "&e").replace("§6", "&6").replace("§2", "&2")
-				.replace("§a", "&a").replace("§5", "&5").replace("§d", "&d").replace("§f", "&f").replace("§7", "&7")
-				.replace("§8", "&8").replace("§0", "&0");
-
-		return result;
-	}
-
-	/*
 	 * Pattern checking
 	 */
 

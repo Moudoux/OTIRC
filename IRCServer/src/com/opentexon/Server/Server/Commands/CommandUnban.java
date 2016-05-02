@@ -6,38 +6,31 @@ package com.opentexon.Server.Server.Commands;
 
 import com.opentexon.Server.Main.Main;
 import com.opentexon.Server.Server.User;
-import com.opentexon.Utils.StringUtils;
 
-public class CommandUnban {
+public class CommandUnban extends Command {
 
 	private void runCommand(User user, String line, boolean isConsole) {
-		if (StringUtils.isIPAddress(line.split(" ")[1])) {
-			if (Main.getInstance().getServer().bannedUsers.contains(line.split(" ")[1])) {
-				Main.getInstance().getServer().bannedUsers.remove(line.split(" ")[1]);
-			}
-			Main.getInstance().getServer().e.printMessageToUserOrConsole(user, isConsole,
-					"§aUnbanned ip " + line.split(" ")[1]);
-		} else {
-			boolean found = false;
-			String ip = line.split(" ")[1];
+		boolean found = false;
+		String ip = line.split(" ")[1];
 
-			if (Main.getInstance().getServer().bannedUsers.contains(ip)) {
-				found = true;
-				Main.getInstance().getServer().bannedUsers.remove(ip);
+		if (this.getServer().bannedUsers.contains(ip)) {
+			found = true;
 
-				Main.getInstance().getServer().e.printMessageToUserOrConsole(user, isConsole,
-						Main.getInstance().getServer().messages.unbanMessage(ip, user));
-			}
+			this.getServer().bannedUsers.remove(ip);
+			this.getServer().removeTempBan(ip);
+			this.sendMessage("Unbanned ip " + ip);
+			String executor = isConsole ? "Console" : user.Username;
+			this.notifyOpsAndConsole(executor + " unbanned ip " + ip);
+		}
 
-			if (!found) {
-				Main.getInstance().getServer().e.printMessageToUserOrConsole(user, isConsole,
-						Main.getInstance().getServer().messages.userNotFound(user, line, isConsole).replace("User",
-								"IP"));
-			}
+		if (!found) {
+			this.userNotFound();
 		}
 	}
 
 	public CommandUnban(User user, String line, boolean isConsole) {
+		super(isConsole ? null : user);
+
 		boolean hasPerm = false;
 		if (isConsole) {
 			hasPerm = true;
@@ -51,16 +44,10 @@ public class CommandUnban {
 			if (Main.getInstance().getServer().e.CountArgs(line) == 1) {
 				runCommand(isConsole ? null : user, line, isConsole);
 			} else {
-				String correctUssage = Main.getInstance().getServer().messages.correctUssage(user, line, isConsole)
-						+ " /unban [IP Address]";
-				if (isConsole) {
-					Main.getInstance().getLogger().printWarningMessage(correctUssage);
-				} else {
-					user.WriteToClient(correctUssage);
-				}
+				this.correctUssage("/unban [IP Address]");
 			}
 		} else {
-			user.WriteToClient(Main.getInstance().getServer().messages.permissionDenied(user, line, isConsole));
+			this.permissionDenied();
 		}
 	}
 

@@ -14,6 +14,7 @@ import com.opentexon.Server.Server.Commands.CommandKick;
 import com.opentexon.Server.Server.Commands.CommandMsg;
 import com.opentexon.Server.Server.Commands.CommandMute;
 import com.opentexon.Server.Server.Commands.CommandOp;
+import com.opentexon.Server.Server.Commands.CommandTempban;
 import com.opentexon.Server.Server.Commands.CommandUnban;
 import com.opentexon.Server.Server.Commands.CommandUnmute;
 import com.opentexon.Server.Server.Commands.CommandUsers;
@@ -48,10 +49,16 @@ public class Events {
 	 * 
 	 * @param message
 	 */
-	public void NotifyOpsAndConsole(String message) {
+	public void NotifyOpsAndConsole(String message, User executor) {
 		for (User u : Main.getInstance().getServer().users) {
 			if (u.isOP) {
-				u.WriteToClient(message);
+				if (executor == null) {
+					u.WriteToClient(message);
+				} else {
+					if (!u.equals(executor)) {
+						u.WriteToClient(message);
+					}
+				}
 			}
 		}
 		Main.getInstance().getLogger().printInfoMessage(message);
@@ -81,12 +88,14 @@ public class Events {
 			CommandKick j = new CommandKick(isConsole ? null : user, line, isConsole);
 		} else if (line.startsWith("glob") && CountArgs(line) >= 1 && isConsole) {
 			for (User u : Main.getInstance().getServer().users) {
-				u.WriteToClient(Main.getInstance().getServer().messages.globMessageFromConsole(line));
+				u.WriteToClient("Console" + " -> " + line.replace("glob ", ""));
 			}
 		} else if (line.startsWith("users")) {
 			CommandUsers j = new CommandUsers(isConsole ? null : user, line, isConsole);
 		} else if (line.startsWith("ban") && !line.startsWith("banlist")) {
 			CommandBan j = new CommandBan(isConsole ? null : user, line, isConsole);
+		} else if (line.startsWith("tempban")) {
+			CommandTempban j = new CommandTempban(isConsole ? null : user, line, isConsole);
 		} else if (line.startsWith("mute")) {
 			CommandMute j = new CommandMute(isConsole ? null : user, line, isConsole);
 		} else if (line.startsWith("unmute")) {
@@ -104,17 +113,12 @@ public class Events {
 		} else if (line.startsWith("unban")) {
 			CommandUnban j = new CommandUnban(isConsole ? null : user, line, isConsole);
 		} else if (line.startsWith("ver")) {
-			if (isConsole) {
-				Main.getInstance().getLogger().printWarningMessage(
-						Main.getInstance().getServer().messages.ServerVersion() + " " + Main.getInstance().version);
-			} else {
-				user.WriteToClient(
-						Main.getInstance().getServer().messages.ServerVersion() + " " + Main.getInstance().version);
-			}
+			this.printMessageToUserOrConsole(isConsole ? null : user, isConsole,
+					"Server version: " + Main.getInstance().version);
 		} else if (line.startsWith("channel") && CountArgs(line) >= 2 && isConsole) {
 			for (User u : Main.getInstance().getServer().users) {
 				if (u.Channel.equals(line.split(" ")[1])) {
-					u.WriteToClient(Main.getInstance().getServer().messages.channelMessageFromConsole(line));
+					u.WriteToClient("Console" + " -> " + line.replace("channel " + line.split(" ")[1] + " ", ""));
 				}
 			}
 		} else if (line.startsWith("channelmsg") && !isConsole) {
@@ -123,12 +127,8 @@ public class Events {
 			user.WriteToClient("Bye");
 			user.Destroy();
 		} else {
-			if (isConsole) {
-				Main.getInstance().getLogger()
-						.printWarningMessage(Main.getInstance().getServer().messages.commandNotFound());
-			} else {
-				user.WriteToClient(Main.getInstance().getServer().messages.commandNotFound());
-			}
+			this.printMessageToUserOrConsole(isConsole ? null : user, isConsole,
+					"Unkown command, type /help for all commands");
 		}
 	}
 
@@ -158,10 +158,10 @@ public class Events {
 	 */
 	public void onDisconnect(User user) {
 		Main.getInstance().getServer().users.remove(user);
-		Main.getInstance().getLogger().printInfoMessage(Main.getInstance().getServer().messages.userLeave(user));
+		Main.getInstance().getLogger().printInfoMessage("User " + user.Username + " has left");
 		for (User u : Main.getInstance().getServer().users) {
-			if (u.Channel.equals(user.Channel)) {
-				u.WriteToClient(Main.getInstance().getServer().messages.userLeave(user));
+			if (u.Channel.equals(user.Channel) && !u.equals(user)) {
+				u.WriteToClient("User " + user.Username + " has left");
 			}
 		}
 	}
@@ -174,7 +174,7 @@ public class Events {
 	public void onJoin(User user) {
 		for (User u : Main.getInstance().getServer().users) {
 			if (u.Channel.equals(user.Channel) && !u.equals(user)) {
-				u.WriteToClient(Main.getInstance().getServer().messages.userJoin(user));
+				u.WriteToClient("User " + user.Username + " has joined");
 			}
 		}
 	}

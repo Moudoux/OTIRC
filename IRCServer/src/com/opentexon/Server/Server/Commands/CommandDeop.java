@@ -8,46 +8,43 @@ import com.opentexon.Server.Main.Main;
 import com.opentexon.Server.Server.User;
 import com.opentexon.Utils.StringUtils;
 
-public class CommandDeop {
+public class CommandDeop extends Command {
 
 	private void runCommand(User user, String line, boolean isConsole) {
-		if (StringUtils.isIPAddress(line.split(" ")[1].toLowerCase())) {
-			if (Main.getInstance().getServer().opUsers.contains(line.split(" ")[1].toLowerCase())) {
-				Main.getInstance().getServer().opUsers.remove(line.split(" ")[1].toLowerCase());
+		String ip = line.split(" ")[1];
+		if (StringUtils.containsIPAddress(line)) {
+			User oppedUser = this.getUserFromIP(ip);
+			if (this.getServer().opUsers.contains(ip)) {
+				this.getServer().opUsers.remove(ip);
 			}
-			Main.getInstance().getServer().e.printMessageToUserOrConsole(user, isConsole,
-					"§cDeopped " + line.split(" ")[1].toLowerCase());
+			String executor = isConsole ? "Console" : user.Username;
+			if (oppedUser != null) {
+				oppedUser.isOP = false;
+				this.notifyOpsAndConsole(executor + " deopped " + oppedUser.Username);
+				oppedUser.WriteToClient(executor + " deopped you");
+			} else {
+				this.notifyOpsAndConsole(executor + " deopped " + ip);
+			}
 		} else {
-			boolean found = false;
-			for (User u : Main.getInstance().getServer().users) {
-				if (u.Username.toLowerCase().equals(line.split(" ")[1].toLowerCase())) {
-					u.WriteToClient(Main.getInstance().getServer().messages.deopMessage(user, line, isConsole));
-
-					Main.getInstance().getServer().e.printMessageToUserOrConsole(user, isConsole,
-							Main.getInstance().getServer().messages.deopMessage1(user, line, isConsole, u));
-
-					u.isOP = false;
-
-					if (Main.getInstance().getServer().opUsers.contains(u.Ip)) {
-						Main.getInstance().getServer().opUsers.remove(u.Ip);
-					}
-
-					Main.getInstance().getServer().e.NotifyOpsAndConsole(
-							Main.getInstance().getServer().messages.deopMessage2(user, line, isConsole, u));
-
-					found = true;
-					break;
+			User oppedUser = this.getUserFromUsername(ip);
+			String executor = isConsole ? "Console" : user.Username;
+			if (oppedUser != null) {
+				ip = oppedUser.Ip;
+				if (this.getServer().opUsers.contains(ip)) {
+					this.getServer().opUsers.remove(ip);
 				}
-			}
-
-			if (!found) {
-				Main.getInstance().getServer().e.printMessageToUserOrConsole(user, isConsole,
-						Main.getInstance().getServer().messages.userNotFound(user, line, isConsole));
+				oppedUser.isOP = false;
+				this.notifyOpsAndConsole(executor + " deopped " + oppedUser.Username);
+				oppedUser.WriteToClient(executor + " deopped you");
+			} else {
+				this.userNotFound();
 			}
 		}
 	}
 
 	public CommandDeop(User user, String line, boolean isConsole) {
+		super(isConsole ? null : user);
+
 		boolean hasPerm = false;
 		if (isConsole) {
 			hasPerm = true;
@@ -61,16 +58,10 @@ public class CommandDeop {
 			if (Main.getInstance().getServer().e.CountArgs(line) == 1) {
 				runCommand(isConsole ? null : user, line, isConsole);
 			} else {
-				String correctUssage = Main.getInstance().getServer().messages.correctUssage(user, line, isConsole)
-						+ " /deop [Username]";
-				if (isConsole) {
-					Main.getInstance().getLogger().printWarningMessage(correctUssage);
-				} else {
-					user.WriteToClient(correctUssage);
-				}
+				this.correctUssage("/deop [Username/IP]");
 			}
 		} else {
-			user.WriteToClient(Main.getInstance().getServer().messages.permissionDenied(user, line, isConsole));
+			this.permissionDenied();
 		}
 	}
 

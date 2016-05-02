@@ -20,29 +20,6 @@ public class Filter {
 	private boolean hideLinks = true;
 	private boolean hideIpAddresses = true;
 
-	private String removeCodes(String message) {
-		String result = message;
-
-		result = result.replace("§1", "");
-		result = result.replace("§9", "");
-		result = result.replace("§3", "");
-		result = result.replace("§b", "");
-		result = result.replace("§4", "");
-		result = result.replace("§c", "");
-		result = result.replace("§e", "");
-		result = result.replace("§6", "");
-		result = result.replace("§2", "");
-		result = result.replace("§a", "");
-		result = result.replace("§5", "");
-		result = result.replace("§d", "");
-		result = result.replace("§f", "");
-		result = result.replace("§7", "");
-		result = result.replace("§8", "");
-		result = result.replace("§0", "");
-
-		return result;
-	}
-
 	public String proccessIPAddresses(String line) {
 		String result = "";
 		Pattern p = Pattern.compile(
@@ -50,7 +27,6 @@ public class Filter {
 		for (String s : line.split(" ")) {
 			Matcher m = p.matcher(s);
 			if (m.find()) {
-				s = "§a" + s + "§7";
 				if (hideIpAddresses) {
 					s = "[HIDDEN]";
 				}
@@ -69,7 +45,6 @@ public class Filter {
 		for (String s : line.split(" ")) {
 			Matcher m = p.matcher(s);
 			if (m.find()) {
-				s = "§a" + s + "§7";
 				if (hideLinks) {
 					s = "[HIDDEN]";
 				}
@@ -84,7 +59,7 @@ public class Filter {
 	public boolean isSwearWord(String line) {
 		boolean result = false;
 
-		line = removeCodes(line.toLowerCase());
+		line = line.toLowerCase();
 
 		ArrayList<String> badWords = Badwords.getBadWords();
 

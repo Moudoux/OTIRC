@@ -7,7 +7,7 @@ package com.opentexon.Server.Server.Commands;
 import com.opentexon.Server.Main.Main;
 import com.opentexon.Server.Server.User;
 
-public class CommandKick {
+public class CommandKick extends Command {
 
 	private void runCommand(User user, String line, boolean isConsole) {
 		boolean found = false;
@@ -17,23 +17,24 @@ public class CommandKick {
 
 		for (User u : Main.getInstance().getServer().users) {
 			if (u.Username.toLowerCase().equals(line.split(" ")[1].toLowerCase())) {
-				u.WriteToClient(Main.getInstance().getServer().messages.kickMessage(user, line, isConsole, u));
 
-				Main.getInstance().getServer().e.printMessageToUserOrConsole(user, isConsole,
-						Main.getInstance().getServer().messages.kickMessage1(user, line, isConsole, u));
+				String executor = isConsole ? "Console" : user.Username;
+
+				u.WriteToClient(executor + " kicked you");
 
 				if (!reason.equals("")) {
-					u.WriteToClient("§7Kick reason: §c" + reason);
+					u.WriteToClient("Kick reason: " + reason);
 				}
 
-				if (Main.getInstance().getServer().opUsers.contains(u.Ip)) {
-					Main.getInstance().getServer().opUsers.add(u.Ip);
+				if (this.getServer().opUsers.contains(u.Ip)) {
+					this.getServer().opUsers.remove(u.Ip);
 				}
 
+				String uname = u.Username;
 				u.Destroy();
 
-				Main.getInstance().getServer().e.NotifyOpsAndConsole(
-						Main.getInstance().getServer().messages.kickMessage2(user, line, isConsole));
+				this.sendMessage("Kicked " + uname);
+				this.notifyOpsAndConsole(executor + " kicked " + uname);
 
 				found = true;
 				break;
@@ -41,12 +42,13 @@ public class CommandKick {
 		}
 
 		if (!found) {
-			Main.getInstance().getServer().e.printMessageToUserOrConsole(user, isConsole,
-					Main.getInstance().getServer().messages.userNotFound(user, line, isConsole));
+			this.userNotFound();
 		}
 	}
 
 	public CommandKick(User user, String line, boolean isConsole) {
+		super(isConsole ? null : user);
+
 		boolean hasPerm = false;
 		if (isConsole) {
 			hasPerm = true;
@@ -60,16 +62,10 @@ public class CommandKick {
 			if (Main.getInstance().getServer().e.CountArgs(line) >= 1) {
 				runCommand(isConsole ? null : user, line, isConsole);
 			} else {
-				String correctUssage = Main.getInstance().getServer().messages.correctUssage(user, line, isConsole)
-						+ " /kick [Username] [Message]";
-				if (isConsole) {
-					Main.getInstance().getLogger().printWarningMessage(correctUssage);
-				} else {
-					user.WriteToClient(correctUssage);
-				}
+				this.correctUssage("/kick [Username] [Reason]");
 			}
 		} else {
-			user.WriteToClient(Main.getInstance().getServer().messages.permissionDenied(user, line, isConsole));
+			this.permissionDenied();
 		}
 	}
 

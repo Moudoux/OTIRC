@@ -7,7 +7,27 @@ package com.opentexon.Server.Server.Commands;
 import com.opentexon.Server.Main.Main;
 import com.opentexon.Server.Server.User;
 
-public class CommandChannelMessage {
+public class CommandChannelMessage extends Command {
+
+	private String channelMessage(User user, String line) {
+		String message = line;
+		message = message.replace("channelmsg ", "");
+		String inPrefix = "User";
+
+		/*
+		 * Change this to users who should have special prefixes
+		 */
+		if (user.Username.toLowerCase().equals("thijminecraft02")) {
+			inPrefix = "Beta Tester";
+		}
+		if (user.Username.toLowerCase().equals("deftware")) {
+			inPrefix = "Creator";
+		}
+
+		String prefix = "[" + inPrefix + "] ";
+		return user.isOP ? "[OP] " + prefix + " " + user.Username + " -> " + message
+				: prefix + " " + user.Username + " -> " + message;
+	}
 
 	private void runCommand(User user, String line) {
 		String message = line;
@@ -22,28 +42,28 @@ public class CommandChannelMessage {
 		if (sendMessage) {
 			for (User u : Main.getInstance().getServer().users) {
 				if (u.Channel.equals(user.Channel)) {
-					u.WriteToClient(Main.getInstance().getServer().messages.channelMessage1(user, line, false));
+					u.WriteToClient(channelMessage(user, line));
 				}
 			}
 			Main.getInstance().getLogger().printInfoMessage(user.Channel + "@" + user.Username + " -> " + message);
 		} else {
-			user.WriteToClient(Main.getInstance().getServer().messages.channelMessage(user, line, false));
+			this.sendMessage("Your message contains illegal characters");
 		}
 	}
 
 	public CommandChannelMessage(User user, String line) {
+		super(user);
+
 		boolean hasPerm = true;
 
 		if (hasPerm) {
 			if (Main.getInstance().getServer().e.CountArgs(line) >= 1) {
 				runCommand(user, line);
 			} else {
-				String correctUssage = Main.getInstance().getServer().messages.correctUssage(user, line, false)
-						+ " /channelmsg [Message]";
-				user.WriteToClient(correctUssage);
+				this.correctUssage("/channelmsg [Message]");
 			}
 		} else {
-			user.WriteToClient(Main.getInstance().getServer().messages.permissionDenied(user, line, false));
+			this.permissionDenied();
 		}
 	}
 

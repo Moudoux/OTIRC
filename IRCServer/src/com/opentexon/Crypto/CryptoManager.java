@@ -11,8 +11,6 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLConnection;
 
-import com.opentexon.Utils.StringUtils;
-
 /**
  * Encrypts all messages between the server and clients. The messages are
  * encrypted with a one time key via a external encryption server.
@@ -54,13 +52,13 @@ public class CryptoManager {
 	public static String decode(String message) {
 		// If you wish to use your own encryption servers, make sure to use SSL
 		String url = "https://dl.opentexon.com/.irc/crypto.php?ref=irc&action=decode";
-		return getPage(url, StringUtils.translateColorCodesBack(message));
+		return getPage(url, message);
 	}
 
 	public static String encode(String message) {
 		// If you wish to use your own encryption servers, make sure to use SSL
 		String url = "https://dl.opentexon.com/.irc/crypto.php?ref=irc&action=encode";
-		return getPage(url, StringUtils.translateColorCodes(message));
+		return getPage(url, message);
 	}
 
 }

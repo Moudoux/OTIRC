@@ -7,58 +7,48 @@ package com.opentexon.Server.Server.Commands;
 import com.opentexon.Server.Main.Main;
 import com.opentexon.Server.Server.User;
 
-public class CommandHelp {
+public class CommandHelp extends Command {
 
 	private void runCommand(User user, String line, boolean isConsole) {
-		Main.getInstance().getServer().e.printMessageToUserOrConsole(user, isConsole,
-				Main.getInstance().getServer().messages.helpMessage());
+		this.sendMessage("== All commands ==");
 
-		Main.getInstance().getServer().e.printMessageToUserOrConsole(user, isConsole,
-				"/kick [Username] [Message] (OP/Console)");
-		Main.getInstance().getServer().e.printMessageToUserOrConsole(user, isConsole,
-				"/ban [Username/IP] [Message] (OP/Console)");
-		Main.getInstance().getServer().e.printMessageToUserOrConsole(user, isConsole,
-				"/mute [Username] [Message] (OP/Console)");
+		this.sendMessage("/kick [Username] [Reason] (OP/Console)");
+		this.sendMessage("/ban [Username/IP] [Reason] (OP/Console)");
+		this.sendMessage("/tempban [Username/IP] [Minutes] [Reason] (OP/Console)");
+		this.sendMessage("/mute [Username] [Reason] (OP/Console)");
 
-		Main.getInstance().getServer().e.printMessageToUserOrConsole(user, isConsole, "/op [Username/IP] (OP/Console)");
-		Main.getInstance().getServer().e.printMessageToUserOrConsole(user, isConsole,
-				"/deop [Username/IP] (OP/Console)");
-		Main.getInstance().getServer().e.printMessageToUserOrConsole(user, isConsole, "/whois [Username] (OP/Console)");
-		Main.getInstance().getServer().e.printMessageToUserOrConsole(user, isConsole,
-				"/unban [Username/IP] (OP/Console)");
-		Main.getInstance().getServer().e.printMessageToUserOrConsole(user, isConsole, "/banlist (OP/Console)");
-		Main.getInstance().getServer().e.printMessageToUserOrConsole(user, isConsole, "/msg [Username] [Message]");
-		Main.getInstance().getServer().e.printMessageToUserOrConsole(user, isConsole, "/users");
-		Main.getInstance().getServer().e.printMessageToUserOrConsole(user, isConsole, "/ver");
+		this.sendMessage("/op [Username/IP] (OP/Console)");
+		this.sendMessage("/deop [Username/IP] (OP/Console)");
+		this.sendMessage("/whois [Username/IP] (OP/Console)");
+		this.sendMessage("/unban [Username/IP] (OP/Console)");
+		this.sendMessage("/banlist (OP/Console)");
+		this.sendMessage("/msg [Username] [Message]");
+		this.sendMessage("/users");
+		this.sendMessage("/ver");
 
 		if (isConsole) {
-			Main.getInstance().getServer().e.printMessageToUserOrConsole(user, isConsole, "/glob [Message]");
-			Main.getInstance().getServer().e.printMessageToUserOrConsole(user, isConsole,
-					"/channel [Channel] [Message]");
+			this.sendMessage("/glob [Message]");
+			this.sendMessage("/channel [Channel] [Message]");
 		} else {
-			Main.getInstance().getServer().e.printMessageToUserOrConsole(user, isConsole, "/quit");
-			Main.getInstance().getServer().e.printMessageToUserOrConsole(user, isConsole, "/ping");
+			this.sendMessage("/quit");
+			this.sendMessage("/ping");
 		}
 
 	}
 
 	public CommandHelp(User user, String line, boolean isConsole) {
+		super(isConsole ? null : user);
+
 		boolean hasPerm = true;
 
 		if (hasPerm) {
 			if (Main.getInstance().getServer().e.CountArgs(line) == 0) {
 				runCommand(isConsole ? null : user, line, isConsole);
 			} else {
-				String correctUssage = Main.getInstance().getServer().messages.correctUssage(user, line, isConsole)
-						+ " /help";
-				if (isConsole) {
-					Main.getInstance().getLogger().printWarningMessage(correctUssage);
-				} else {
-					user.WriteToClient(correctUssage);
-				}
+				this.correctUssage("/help");
 			}
 		} else {
-			user.WriteToClient(Main.getInstance().getServer().messages.permissionDenied(user, line, isConsole));
+			this.permissionDenied();
 		}
 	}
 
