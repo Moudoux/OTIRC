@@ -22,6 +22,10 @@ To start the Client type:
 java -cp IRC.jar com.opentexon.Client.Main.Main
 ```
 
+### Official server
+
+Feel free to join the official server at 81.8.246.246 port 6687
+
 ### Commands
 
 There are a few commands to operate the server:
