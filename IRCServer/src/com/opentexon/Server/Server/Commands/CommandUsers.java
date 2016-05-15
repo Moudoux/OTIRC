@@ -6,23 +6,25 @@ package com.opentexon.Server.Server.Commands;
 
 import com.opentexon.Server.Main.Main;
 import com.opentexon.Server.Server.User;
+import com.opentexon.Server.Server.Packets.P02PacketString;
 
 public class CommandUsers extends Command {
 
+	@Override
 	@SuppressWarnings("unused")
-	private void runCommand(User user, String line, boolean isConsole) {
+	public void runCommand(User user, P02PacketString line, boolean isConsole) {
 		int counter = 0;
 		int opCounter = 0;
 		int banned = 0;
 
 		for (User u : Main.getInstance().getServer().users) {
 			counter += 1;
-			if (u.isOP) {
+			if (u.isOP()) {
 				opCounter += 1;
 			}
 		}
 
-		for (String s : Main.getInstance().getServer().bannedUsers) {
+		for (String s : Main.getInstance().getServer().permBannedUsers) {
 			banned += 1;
 		}
 
@@ -41,20 +43,9 @@ public class CommandUsers extends Command {
 
 	}
 
-	public CommandUsers(User user, String line, boolean isConsole) {
+	public CommandUsers(User user, P02PacketString line, boolean isConsole) {
 		super(isConsole ? null : user);
-
-		boolean hasPerm = true;
-
-		if (hasPerm) {
-			if (Main.getInstance().getServer().e.CountArgs(line) == 0) {
-				runCommand(isConsole ? null : user, line, isConsole);
-			} else {
-				this.correctUssage("/users");
-			}
-		} else {
-			this.permissionDenied();
-		}
+		this.execute(false, "/users", line, 0);
 	}
 
 }

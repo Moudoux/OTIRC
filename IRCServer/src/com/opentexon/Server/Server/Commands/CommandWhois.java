@@ -4,53 +4,40 @@
  */
 package com.opentexon.Server.Server.Commands;
 
-import com.opentexon.Server.Main.Main;
 import com.opentexon.Server.Server.User;
+import com.opentexon.Server.Server.Packets.P02PacketString;
 import com.opentexon.Utils.StringUtils;
 
 public class CommandWhois extends Command {
 
-	private void runCommand(User user, String line, boolean isConsole) {
+	@Override
+	public void runCommand(User user, P02PacketString line, boolean isConsole) {
 		User whoisUser = null;
 
-		if (StringUtils.containsIPAddress(line)) {
-			whoisUser = this.getUserFromIP(line.split(" ")[1]);
+		if (StringUtils.containsIPAddress(line.getString())) {
+			whoisUser = this.getUserFromIP(line.getString().split(" ")[1]);
 		} else {
-			whoisUser = this.getUserFromUsername(line.split(" ")[1]);
+			whoisUser = this.getUserFromUsername(line.getString().split(" ")[1]);
 		}
 
 		if (whoisUser != null) {
-			this.sendMessage("== Who is " + whoisUser.Username + " ==");
+			this.sendMessage("== Who is " + whoisUser.getUsername() + " ==");
 
-			this.sendMessage("IP Addresss: " + whoisUser.Ip);
+			this.sendMessage("IP Addresss: " + whoisUser.getIp());
 
-			this.sendMessage("Current channel: " + whoisUser.Channel);
+			this.sendMessage("Current channel: " + whoisUser.getChannel().getName());
+
+			this.sendMessage("OP: " + (whoisUser.isOP() ? "true" : "false"));
+
+			this.sendMessage("Muted: " + (whoisUser.isMuted() ? "true" : "false"));
 		} else {
 			this.userNotFound();
 		}
 	}
 
-	public CommandWhois(User user, String line, boolean isConsole) {
+	public CommandWhois(User user, P02PacketString line, boolean isConsole) {
 		super(isConsole ? null : user);
-
-		boolean hasPerm = false;
-		if (isConsole) {
-			hasPerm = true;
-		} else {
-			if (user.isOP) {
-				hasPerm = true;
-			}
-		}
-
-		if (hasPerm) {
-			if (Main.getInstance().getServer().e.CountArgs(line) == 1) {
-				runCommand(isConsole ? null : user, line, isConsole);
-			} else {
-				this.correctUssage("/whois [Username]");
-			}
-		} else {
-			this.permissionDenied();
-		}
+		this.execute(true, "/whois [Username | IP]", line, 1);
 	}
 
 }

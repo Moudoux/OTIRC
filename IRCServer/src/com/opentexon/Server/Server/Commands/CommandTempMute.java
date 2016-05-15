@@ -5,28 +5,29 @@ import com.opentexon.Server.Server.User;
 import com.opentexon.Server.Server.Packets.P02PacketString;
 import com.opentexon.Utils.StringUtils;
 
-public class CommandTempban extends Command {
+public class CommandTempMute extends Command {
 
-	private void banIP(String ip, int minutes, User executor, String reason) {
-		User bannedUser = this.getUserFromIP(ip);
+	private void muteIP(String ip, int minutes, User executor, String reason) {
+		User mutedUser = this.getUserFromIP(ip);
 		try {
-			String banTime = this.getServer().formatLongDate(this.getServer().tempBanUser(ip, minutes));
-			if (bannedUser != null) {
+			String unmuteTime = this.getServer().formatLongDate(this.getServer().tempMuteUser(ip, minutes));
+			if (mutedUser != null) {
 				String banner = (executor == null) ? "Console" : executor.getUsername();
-				bannedUser.WriteToClient(new P02PacketString(null, "You were temporarily banned by " + banner));
-				bannedUser.WriteToClient(new P02PacketString(null, "You will be unbanned at: " + banTime));
+				mutedUser.WriteToClient(new P02PacketString(null, "You were temporarily muted by " + banner));
+				mutedUser.WriteToClient(new P02PacketString(null, "You will be unmuted at: " + unmuteTime));
 				if (!reason.equals("")) {
-					bannedUser.WriteToClient(new P02PacketString(null, "Reason: " + reason));
+					mutedUser.WriteToClient(new P02PacketString(null, "Mute reason: " + reason));
 				}
-				bannedUser.Destroy();
 			}
 			if (executor != null) {
-				this.notifyOpsAndConsole(executor.getUsername() + " temporarily banned ip " + ip + " until " + banTime);
+				this.notifyOpsAndConsole(
+						executor.getUsername() + " temporarily muted ip " + ip + " until " + unmuteTime);
 			} else {
-				this.notifyOpsAndConsole("Console temporarily banned ip " + ip + " until " + banTime);
+				this.notifyOpsAndConsole("Console temporarily muted ip " + ip + " until " + unmuteTime);
 			}
 		} catch (Exception ex) {
-			this.sendMessage("Could not temporarily ban the specified user");
+			this.sendMessage("Could not temporarily mute the specified user");
+			ex.printStackTrace();
 		}
 	}
 
@@ -67,14 +68,14 @@ public class CommandTempban extends Command {
 								+ " " + line.getString().split(" ")[2] + " ", "")
 						: "";
 
-				banIP(ip, Integer.valueOf(minutes), user, reason);
+				muteIP(ip, Integer.valueOf(minutes), user, reason);
 			}
 		}
 	}
 
-	public CommandTempban(User user, P02PacketString line, boolean isConsole) {
+	public CommandTempMute(User user, P02PacketString line, boolean isConsole) {
 		super(isConsole ? null : user);
-		this.execute(true, "/tempban [Username | IP] [Minutes] [Reason]", line, 2);
+		this.execute(true, "/tempmute [Username | IP] [Minutes] [Reason]", line, 2);
 	}
 
 }

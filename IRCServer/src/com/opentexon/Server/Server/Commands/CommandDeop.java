@@ -4,65 +4,64 @@
  */
 package com.opentexon.Server.Server.Commands;
 
-import com.opentexon.Server.Main.Main;
+import com.opentexon.Server.Server.ConfigManager;
 import com.opentexon.Server.Server.User;
+import com.opentexon.Server.Server.Packets.P02PacketString;
 import com.opentexon.Utils.StringUtils;
 
 public class CommandDeop extends Command {
 
-	private void runCommand(User user, String line, boolean isConsole) {
-		String ip = line.split(" ")[1];
-		if (StringUtils.containsIPAddress(line)) {
-			User oppedUser = this.getUserFromIP(ip);
-			if (this.getServer().opUsers.contains(ip)) {
-				this.getServer().opUsers.remove(ip);
+	private void deopIP(User user, String ip, String executor) {
+		if (this.getServer().opUsers.contains(ip)) {
+			this.getServer().opUsers.remove(ip);
+		}
+		if (this.getServer().opUsersPlus.contains(ip)) {
+			this.getServer().opUsersPlus.remove(ip);
+		}
+		if (user != null) {
+			user.setOP(false);
+			user.WriteToClient(new P02PacketString(null, "You were deopped by " + executor));
+		}
+		this.notifyOpsAndConsole(executor + " deopped " + ((user == null) ? ip : user.getUsername()));
+		try {
+			ConfigManager.getInstance().removeListValue("ops", ip);
+			ConfigManager.getInstance().removeListValue("opsplus", ip);
+		} catch (Exception ex) {
+			this.couldNotSaveConfig();
+		}
+	}
+
+	@Override
+	public void runCommand(User user, P02PacketString line, boolean isConsole) {
+		boolean PermissionPlus = false;
+
+		if (user != null && !isConsole) {
+			if (user.PermissionLevel == 1) {
+				PermissionPlus = true;
 			}
-			String executor = isConsole ? "Console" : user.Username;
-			if (oppedUser != null) {
-				oppedUser.isOP = false;
-				this.notifyOpsAndConsole(executor + " deopped " + oppedUser.Username);
-				oppedUser.WriteToClient(executor + " deopped you");
-			} else {
-				this.notifyOpsAndConsole(executor + " deopped " + ip);
-			}
+		}
+
+		if (!PermissionPlus && this.getServer().isUserOP(line.getString().split(" ")[1]) && !isConsole) {
+			this.permissionDenied();
 		} else {
-			User oppedUser = this.getUserFromUsername(ip);
-			String executor = isConsole ? "Console" : user.Username;
-			if (oppedUser != null) {
-				ip = oppedUser.Ip;
-				if (this.getServer().opUsers.contains(ip)) {
-					this.getServer().opUsers.remove(ip);
+			String ip = line.getString().split(" ")[1];
+			if (!StringUtils.containsIPAddress(line.getString())) {
+				User oppedUser = this.getUserFromUsername(ip);
+				if (oppedUser != null) {
+					ip = oppedUser.getIp();
 				}
-				oppedUser.isOP = false;
-				this.notifyOpsAndConsole(executor + " deopped " + oppedUser.Username);
-				oppedUser.WriteToClient(executor + " deopped you");
+			}
+			if (this.getServer().opUsers.contains(ip) || this.getServer().opUsersPlus.contains(ip)) {
+				this.deopIP(this.getUserFromIP(ip), ip, isConsole ? "Console" : user.getUsername());
 			} else {
 				this.userNotFound();
 			}
 		}
 	}
 
-	public CommandDeop(User user, String line, boolean isConsole) {
+	public CommandDeop(User user, P02PacketString line, boolean isConsole) {
 		super(isConsole ? null : user);
-
-		boolean hasPerm = false;
-		if (isConsole) {
-			hasPerm = true;
-		} else {
-			if (user.isOP) {
-				hasPerm = true;
-			}
-		}
-
-		if (hasPerm) {
-			if (Main.getInstance().getServer().e.CountArgs(line) == 1) {
-				runCommand(isConsole ? null : user, line, isConsole);
-			} else {
-				this.correctUssage("/deop [Username/IP]");
-			}
-		} else {
-			this.permissionDenied();
-		}
+		this.execute(true, "/deop [Username | IP]", line, 1);
 	}
 
 }

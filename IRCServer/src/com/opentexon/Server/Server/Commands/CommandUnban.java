@@ -4,51 +4,48 @@
  */
 package com.opentexon.Server.Server.Commands;
 
-import com.opentexon.Server.Main.Main;
+import com.opentexon.Server.Server.ConfigManager;
 import com.opentexon.Server.Server.User;
+import com.opentexon.Server.Server.Packets.P02PacketString;
 
 public class CommandUnban extends Command {
 
-	private void runCommand(User user, String line, boolean isConsole) {
+	@Override
+	public void runCommand(User user, P02PacketString line, boolean isConsole) {
 		boolean found = false;
-		String ip = line.split(" ")[1];
+		String ip = line.getString().split(" ")[1];
 
-		if (this.getServer().bannedUsers.contains(ip)) {
+		if (this.getServer().permBannedUsers.contains(ip)) {
 			found = true;
-
-			this.getServer().bannedUsers.remove(ip);
-			this.getServer().removeTempBan(ip);
-			this.sendMessage("Unbanned ip " + ip);
-			String executor = isConsole ? "Console" : user.Username;
+			this.getServer().permBannedUsers.remove(ip);
+			String executor = isConsole ? "Console" : user.getUsername();
 			this.notifyOpsAndConsole(executor + " unbanned ip " + ip);
+			if (this.getServer().isTempBanned(ip)) {
+				this.getServer().removeTempBan(ip);
+			}
+		} else {
+			if (this.getServer().isTempBanned(ip)) {
+				found = true;
+				this.getServer().removeTempBan(ip);
+				String executor = isConsole ? "Console" : user.getUsername();
+				this.notifyOpsAndConsole(executor + " unbanned ip " + ip);
+			}
 		}
 
 		if (!found) {
 			this.userNotFound();
+		} else {
+			try {
+				ConfigManager.getInstance().removeListValue("permBanned", ip);
+			} catch (Exception ex) {
+				this.couldNotSaveConfig();
+			}
 		}
 	}
 
-	public CommandUnban(User user, String line, boolean isConsole) {
+	public CommandUnban(User user, P02PacketString line, boolean isConsole) {
 		super(isConsole ? null : user);
-
-		boolean hasPerm = false;
-		if (isConsole) {
-			hasPerm = true;
-		} else {
-			if (user.isOP) {
-				hasPerm = true;
-			}
-		}
-
-		if (hasPerm) {
-			if (Main.getInstance().getServer().e.CountArgs(line) == 1) {
-				runCommand(isConsole ? null : user, line, isConsole);
-			} else {
-				this.correctUssage("/unban [IP Address]");
-			}
-		} else {
-			this.permissionDenied();
-		}
+		this.execute(true, "/unban [IP]", line, 1);
 	}
 
 }

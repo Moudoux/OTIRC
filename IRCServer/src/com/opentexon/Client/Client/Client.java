@@ -8,6 +8,9 @@ import java.io.BufferedReader;
 import java.io.DataOutputStream;
 import java.io.InputStreamReader;
 import java.net.Socket;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 import com.opentexon.Client.Main.Main;
 import com.opentexon.Crypto.CryptoManager;
@@ -22,11 +25,25 @@ public class Client {
 	private DataOutputStream outToServer;
 	private Socket socket;
 
+	private boolean initialized = false;
+	private boolean Connected = false;
+
+	private int connectionDelay = 0;
+	private ScheduledExecutorService executor;
+
+	public boolean isConnected() {
+		return Connected;
+	}
+
 	public Client(String ip, int port, String username, String channel) {
 		this.ip = ip;
 		this.port = port;
 		this.username = username;
 		this.channel = channel;
+	}
+
+	public void PrintMessage(String message) {
+		Main.getInstance().getLogger().printInfoMessage(message);
 	}
 
 	public void Start() {
@@ -43,8 +60,49 @@ public class Client {
 		client.start();
 	}
 
+	public void Reconnect() {
+		Runnable unbanTimer = new Runnable() {
+			@Override
+			public void run() {
+				if (connectionDelay >= 3) {
+					connectionDelay = 0;
+					doReconnect();
+				} else {
+					connectionDelay += 1;
+				}
+			}
+		};
+
+		executor = Executors.newScheduledThreadPool(1);
+		executor.scheduleAtFixedRate(unbanTimer, 0, 1, TimeUnit.SECONDS);
+
+	}
+
+	private void doReconnect() {
+		Thread client = new Thread() {
+			@Override
+			public void run() {
+				try {
+					Main.getInstance().getClient().Run();
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
+			}
+		};
+		client.start();
+		try {
+			executor.shutdown();
+		} catch (Exception ex) {
+
+		}
+	}
+
 	private void Run() {
-		Main.getInstance().getLogger().printInfoMessage("Connecting to " + ip + ":" + String.valueOf(port) + "...");
+		if (!initialized) {
+			initialized = true;
+		}
+
+		PrintMessage("Connecting to server...");
 
 		try {
 			socket = new Socket(ip, port);
@@ -58,6 +116,7 @@ public class Client {
 			String line = null;
 
 			while ((line = inFromServer.readLine()) != null && !socket.isClosed()) {
+				Connected = true;
 				onRecive(line);
 			}
 
@@ -69,8 +128,7 @@ public class Client {
 
 			}
 
-			Main.getInstance().getLogger()
-					.printInfoMessage("You were disconnected by the server or the server is not online.");
+			PrintMessage("You were disconnected by the server or the server is not online.");
 
 		} catch (Exception ex) {
 			try {
@@ -78,9 +136,12 @@ public class Client {
 			} catch (Exception e) {
 
 			}
-			Main.getInstance().getLogger()
-					.printInfoMessage("You were disconnected by the server or the server is not online.");
+			PrintMessage("Failed to connect to server.");
 		}
+
+		Connected = false;
+		PrintMessage("Reconnecting to server...");
+		this.Reconnect();
 	}
 
 	private void onRecive(String line) {
@@ -98,7 +159,7 @@ public class Client {
 				outToServer.flush();
 			}
 		} catch (Exception ex) {
-			Main.getInstance().getLogger().printWarningMessage("You are not connected to a server.");
+			PrintMessage("You are not connected to a server.");
 		}
 	}
 

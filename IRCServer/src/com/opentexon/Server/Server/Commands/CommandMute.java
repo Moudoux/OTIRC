@@ -5,62 +5,67 @@
 package com.opentexon.Server.Server.Commands;
 
 import com.opentexon.Server.Main.Main;
+import com.opentexon.Server.Server.ConfigManager;
 import com.opentexon.Server.Server.User;
+import com.opentexon.Server.Server.Packets.P02PacketString;
+import com.opentexon.Utils.StringUtils;
 
 public class CommandMute extends Command {
 
-	private void runCommand(User user, String line, boolean isConsole) {
-		String reason = Main.getInstance().getServer().e.CountArgs(line) >= 2
-				? line.replace(line.split(" ")[0] + " " + line.split(" ")[1] + " ", "") : "";
-
-		boolean found = false;
-
-		for (User u : Main.getInstance().getServer().users) {
-			if (u.Username.toLowerCase().equals(line.split(" ")[1].toLowerCase())) {
-				u.isMuted = true;
-
-				String executor = isConsole ? "Console" : user.Username;
-
-				u.WriteToClient(executor + " muted you");
-
-				if (!reason.equals("")) {
-					u.WriteToClient("Reason: " + reason);
-				}
-
-				this.sendMessage("Muted " + u.Username);
-				this.notifyOpsAndConsole(executor + " muted " + u.Username);
-
-				found = true;
-				break;
-			}
+	private void muteUser(String ip, String reason, String executor) {
+		if (!Main.getInstance().getServer().permMutedUsers.contains(ip)) {
+			Main.getInstance().getServer().permMutedUsers.add(ip);
 		}
-
-		if (!found) {
-			this.userNotFound();
+		if (this.getUserFromIP(ip) != null) {
+			User u = this.getUserFromIP(ip);
+			u.WriteToClient(new P02PacketString(null, "You were permanently muted by " + executor));
+			if (!reason.equals("")) {
+				u.WriteToClient(new P02PacketString(null, "Reason: " + reason));
+			}
+			ip = u.getUsername();
+		}
+		this.notifyOpsAndConsole(executor + " permanently muted " + ip);
+		try {
+			ConfigManager.getInstance().addListValue("permMuted", ip);
+		} catch (Exception ex) {
+			couldNotSaveConfig();
 		}
 	}
 
-	public CommandMute(User user, String line, boolean isConsole) {
-		super(isConsole ? null : user);
-
-		boolean hasPerm = false;
-		if (isConsole) {
-			hasPerm = true;
-		} else {
-			if (user.isOP) {
-				hasPerm = true;
+	@Override
+	public void runCommand(User user, P02PacketString line, boolean isConsole) {
+		boolean PermissionPlus = false;
+		if (user != null && !isConsole) {
+			if (user.PermissionLevel == 1) {
+				PermissionPlus = true;
 			}
 		}
-
-		if (hasPerm) {
-			if (Main.getInstance().getServer().e.CountArgs(line) >= 1) {
-				runCommand(isConsole ? null : user, line, isConsole);
-			} else {
-				this.correctUssage("/mute [Username] [Reason]");
-			}
-		} else {
+		if (!PermissionPlus && this.getServer().isUserOP(line.getString().split(" ")[1]) && !isConsole) {
 			this.permissionDenied();
+		} else {
+			String reason = Main.getInstance().getServer().e.CountArgs(line.getString()) >= 2 ? line.getString()
+					.replace(line.getString().split(" ")[0] + " " + line.getString().split(" ")[1] + " ", "") : "";
+			String ip = line.getString().split(" ")[1];
+			boolean flag = false;
+			if (!StringUtils.containsIPAddress(ip)) {
+				User u = this.getUserFromUsername(ip);
+				if (u != null) {
+					ip = u.getIp();
+				} else {
+					flag = true;
+				}
+			}
+			if (!flag) {
+				this.muteUser(ip, reason, isConsole ? "Console" : user.getUsername());
+			} else {
+				this.userNotFound();
+			}
 		}
+	}
+
+	public CommandMute(User user, P02PacketString line, boolean isConsole) {
+		super(isConsole ? null : user);
+		this.execute(true, "/mute [Username | IP] [Reason]", line, 1);
 	}
 
 }

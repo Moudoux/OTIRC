@@ -9,9 +9,11 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.Socket;
+import java.util.ArrayList;
 
 import com.opentexon.Crypto.CryptoManager;
 import com.opentexon.Server.Main.Main;
+import com.opentexon.Server.Server.Packets.P02PacketString;
 
 /**
  * User object with listener
@@ -21,26 +23,41 @@ import com.opentexon.Server.Main.Main;
  */
 public class User {
 
-	public String Username;
-	public String Channel;
-	public String Ip;
-	public Socket socket;
-	public DataOutputStream clientWriter;
+	private String Username;
+	private String Ip;
+	private Socket socket;
+	private DataOutputStream clientWriter;
 
-	public boolean isOP = false;
-	public boolean isMuted = false;
-	public boolean isMc = false;
+	private boolean isOP = false;
+	private boolean isMuted = false;
+	private boolean isMc = false;
+	private boolean serverUser = false;
+
+	private Channel channel;
 
 	private Thread ReciverThread;
 
 	private int swearWarnings = 0;
 	private int maxSwear = 3;
+	private int maxRepeat = 3;
 
 	private String lastMsg = "";
-	private int maxRepeat = 3;
 	private int repeatWarnings = 0;
 
 	public boolean isEncrypted = false;
+	public String extraInfo = "";
+
+	public User lastMsgRecived = null;
+
+	public boolean authenticated = false;
+
+	public ArrayList<User> ignoredUsers = new ArrayList<User>();
+
+	/**
+	 * 0 = Normal user or normal op 1 = OP+, can ban, mute, kick, etc other
+	 * operators
+	 */
+	public int PermissionLevel = 0;
 
 	private void Reciver() {
 		BufferedReader inFromClient = null;
@@ -49,32 +66,49 @@ public class User {
 			String line = null;
 
 			while ((line = inFromClient.readLine()) != null && !socket.isClosed()) {
+
 				if (isEncrypted) {
 					line = CryptoManager.decode(line);
 				}
+
 				if (line.equals("/pong")) {
 
 				} else if (line.equals("/ping")) {
-					this.WriteToClient("pong");
-				} else {
-					if (!isMuted) {
+					this.WriteToClient(new P02PacketString(null, "pong"));
+				} else if (authenticated) {
+					boolean flag = false;
+
+					if (!flag) {
+						flag = isMuted;
+					}
+
+					if (!flag) {
+						flag = Main.getInstance().getServer().isTempMuted(this.Ip);
+					}
+
+					if (!flag) {
 						Filter f = new Filter();
 						if (f.isSwearWord(line)) {
 							swearWarnings += 1;
 							if (swearWarnings > maxSwear) {
-								this.WriteToClient("You got tempbanned for swearing");
+								this.WriteToClient(new P02PacketString(null, "You got tempbanned for swearing"));
 								Main.getInstance().getServer().tempBanUser(this.Ip, 5040);
-								this.WriteToClient("You will be unbanned at: "
-										+ Main.getInstance().getServer().getUnbanTime(this.Ip));
-								Main.getInstance().getServer().e
-										.NotifyOpsAndConsole("Tempbanned " + this.Username + " for swearing", null);
+								this.WriteToClient(new P02PacketString(null, "You will be unbanned at: "
+										+ Main.getInstance().getServer().getUnbanTime(this.Ip)));
+								Main.getInstance().getServer().e.NotifyOpsAndConsole(
+										new P02PacketString(null, "Tempbanned " + this.Username + " for swearing"),
+										null);
 								this.Destroy();
 							} else {
 								if (maxSwear == swearWarnings) {
-									this.WriteToClient("This is your final warning, stop swearing");
+									this.WriteToClient(
+											new P02PacketString(null, "This is your final warning, stop swearing"));
 								} else {
-									this.WriteToClient("Don't swear, you will be tempbanned if you continue, warning "
-											+ String.valueOf(swearWarnings) + "/" + String.valueOf(maxSwear));
+									this.WriteToClient(
+											new P02PacketString(null,
+													"Don't swear, you will be tempbanned if you continue, warning "
+															+ String.valueOf(swearWarnings) + "/"
+															+ String.valueOf(maxSwear)));
 								}
 							}
 						} else {
@@ -84,25 +118,30 @@ public class User {
 							if (lastMsg.equals("")) {
 								lastMsg = line;
 							} else {
-								if (lastMsg.toLowerCase().equals(line.toLowerCase())) {
+								if (lastMsg.toLowerCase().equals(line.toLowerCase()) && !(this.PermissionLevel == 1)) {
 									allowRecive = false;
 									repeatWarnings += 1;
 									if (repeatWarnings == maxRepeat) {
-										this.WriteToClient("This is your final warning, stop spamming");
+										this.WriteToClient(
+												new P02PacketString(null, "This is your final warning, stop spamming"));
 									} else {
 										if (repeatWarnings > maxRepeat) {
-											this.WriteToClient("You got tempbanned for spamming");
+											this.WriteToClient(
+													new P02PacketString(null, "You got tempbanned for spamming"));
 											Main.getInstance().getServer().tempBanUser(this.Ip, 1440);
-											this.WriteToClient("You will be unbanned at: "
-													+ Main.getInstance().getServer().getUnbanTime(this.Ip));
-											Main.getInstance().getServer().e.NotifyOpsAndConsole(
-													"Tempbanned " + this.Username + " for spamming", null);
+											this.WriteToClient(new P02PacketString(null, "You will be unbanned at: "
+													+ Main.getInstance().getServer().getUnbanTime(this.Ip)));
+											Main.getInstance().getServer().e
+													.NotifyOpsAndConsole(
+															new P02PacketString(null,
+																	"Tempbanned " + this.Username + " for spamming"),
+															null);
 											this.Destroy();
 										} else {
-											this.WriteToClient(
+											this.WriteToClient(new P02PacketString(null,
 													"Don't spam, you will be tempbanned if you continue, warning "
 															+ String.valueOf(repeatWarnings) + "/"
-															+ String.valueOf(maxRepeat));
+															+ String.valueOf(maxRepeat)));
 										}
 									}
 								} else {
@@ -112,13 +151,17 @@ public class User {
 							}
 
 							if (allowRecive) {
-								line = f.proccessIPAddresses(line);
-								line = f.proccessLinks(line);
-								Main.getInstance().getServer().onReciveFromClient(line, this);
+								P02PacketString pChat = new P02PacketString(this, line);
+								Main.getInstance().getServer().onReciveFromClient(pChat, this);
 							}
 						}
 					} else {
-						this.WriteToClient("You are muted");
+						if (Main.getInstance().getServer().isTempMuted(this.Ip)) {
+							this.WriteToClient(new P02PacketString(null, "You are temporarily muted until: "
+									+ Main.getInstance().getServer().getUnmuteTime(this.Ip)));
+						} else {
+							this.WriteToClient(new P02PacketString(null, "You are permanently muted"));
+						}
 					}
 				}
 			}
@@ -131,7 +174,10 @@ public class User {
 
 			}
 
-			Main.getInstance().getServer().e.onDisconnect(this);
+			if (authenticated) {
+				Main.getInstance().getServer().e.onDisconnect(this);
+			}
+
 		} catch (Exception ex) {
 
 			try {
@@ -141,17 +187,29 @@ public class User {
 			} catch (IOException e) {
 
 			}
-			Main.getInstance().getServer().e.onDisconnect(this);
+
+			if (authenticated) {
+				Main.getInstance().getServer().e.onDisconnect(this);
+			}
+
 		}
 	}
 
-	public void WriteToClient(String message) {
+	public void WriteToClient(P02PacketString pChat) {
 		try {
 			Filter f = new Filter();
-			message = f.proccessIPAddresses(message);
+
+			String message = pChat.getString();
+
+			if (!pChat.getSender().equals(this)) {
+				message = f.proccessIPAddresses(message);
+				message = f.proccessLinks(message);
+			}
+
 			if (isEncrypted) {
 				message = CryptoManager.encode(message);
 			}
+
 			clientWriter.writeBytes(message + "\n");
 			clientWriter.flush();
 		} catch (Exception e) {
@@ -169,9 +227,34 @@ public class User {
 		Main.getInstance().getServer().users.remove(this);
 	}
 
-	public User(String username, String channel, Socket socket) {
+	public boolean isConsole() {
+		return serverUser;
+	}
+
+	/**
+	 * Used to create a server user
+	 * 
+	 * @param username
+	 */
+	public User(String username) {
 		this.Username = username;
-		this.Channel = channel;
+		this.channel = new Channel("#Server");
+		this.Ip = "127.0.0.1";
+		this.isOP = true;
+		this.PermissionLevel = 1;
+		this.serverUser = true;
+	}
+
+	/**
+	 * Creates a normal user
+	 * 
+	 * @param username
+	 * @param socket
+	 * @param channel
+	 */
+	public User(String username, Socket socket, Channel channel) {
+		this.Username = username;
+		this.channel = channel;
 		this.socket = socket;
 		this.Ip = socket.getInetAddress().toString().substring(1);
 
@@ -193,6 +276,94 @@ public class User {
 		};
 
 		ReciverThread.start();
+	}
+
+	public boolean isOP() {
+		return isOP;
+	}
+
+	public void setOP(boolean isOP) {
+		this.isOP = isOP;
+	}
+
+	public boolean isMuted() {
+		return isMuted;
+	}
+
+	public void setMuted(boolean isMuted) {
+		this.isMuted = isMuted;
+	}
+
+	public String getLastMsg() {
+		return lastMsg;
+	}
+
+	public void setLastMsg(String lastMsg) {
+		this.lastMsg = lastMsg;
+	}
+
+	public String getExtraInfo() {
+		return extraInfo;
+	}
+
+	public void setExtraInfo(String extraInfo) {
+		this.extraInfo = extraInfo;
+	}
+
+	public User getLastMsgRecived() {
+		return lastMsgRecived;
+	}
+
+	public void setLastMsgRecived(User lastMsgRecived) {
+		this.lastMsgRecived = lastMsgRecived;
+	}
+
+	public ArrayList<User> getIgnoredUsers() {
+		return ignoredUsers;
+	}
+
+	public void setIgnoredUsers(ArrayList<User> ignoredUsers) {
+		this.ignoredUsers = ignoredUsers;
+	}
+
+	public int getPermissionLevel() {
+		return PermissionLevel;
+	}
+
+	public void setPermissionLevel(int permissionLevel) {
+		PermissionLevel = permissionLevel;
+	}
+
+	public String getUsername() {
+		return Username;
+	}
+
+	public String getIp() {
+		return Ip;
+	}
+
+	public Socket getSocket() {
+		return socket;
+	}
+
+	public boolean isMc() {
+		return isMc;
+	}
+
+	public boolean isServerUser() {
+		return serverUser;
+	}
+
+	public Channel getChannel() {
+		return channel;
+	}
+
+	public boolean isEncrypted() {
+		return isEncrypted;
+	}
+
+	public void setMc(boolean isMc) {
+		this.isMc = isMc;
 	}
 
 }

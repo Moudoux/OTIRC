@@ -6,54 +6,63 @@ package com.opentexon.Server.Server.Commands;
 
 import com.opentexon.Server.Main.Main;
 import com.opentexon.Server.Server.User;
+import com.opentexon.Server.Server.Packets.P02PacketString;
 
 public class CommandUnmute extends Command {
 
-	private void runCommand(User user, String line, boolean isConsole) {
-		boolean found = false;
-
-		for (User u : Main.getInstance().getServer().users) {
-			if (u.Username.toLowerCase().equals(line.split(" ")[1].toLowerCase())) {
-				u.isMuted = false;
-
-				String executor = isConsole ? "Console" : user.Username;
-
-				u.WriteToClient(executor + " unmuted you");
-
-				this.sendMessage("Unmuted " + u.Username);
-				this.notifyOpsAndConsole(executor + " unmuted " + u.Username);
-
-				found = true;
-				break;
+	@Override
+	public void runCommand(User user, P02PacketString line, boolean isConsole) {
+		boolean PermissionPlus = false;
+		if (user != null && !isConsole) {
+			if (user.PermissionLevel == 1) {
+				PermissionPlus = true;
 			}
 		}
+		boolean flag = !PermissionPlus && this.getServer().isUserOP(line.getString().split(" ")[1]) && !isConsole;
+		if (!isConsole) {
+			if (line.getString().split(" ")[1].toLowerCase().equals(user.getUsername().toLowerCase())
+					|| line.getString().split(" ")[1].toLowerCase().equals(user.getIp().toLowerCase())) {
+				flag = true;
+			}
+		}
+		if (flag) {
+			this.permissionDenied();
+		} else {
+			boolean found = false;
 
-		if (!found) {
-			this.userNotFound();
+			for (User u : Main.getInstance().getServer().users) {
+				if (u.getUsername().toLowerCase().equals(line.getString().split(" ")[1].toLowerCase())) {
+					u.setMuted(false);
+
+					if (Main.getInstance().getServer().isTempMuted(u.getIp())) {
+						Main.getInstance().getServer().removeTempMute(u.getIp());
+					}
+
+					String executor = isConsole ? "Console" : user.getUsername();
+
+					if (Main.getInstance().getServer().permMutedUsers.contains(u.getIp())) {
+						Main.getInstance().getServer().permMutedUsers.remove(u.getIp());
+					}
+
+					u.WriteToClient(new P02PacketString(null, executor + " unmuted you"));
+
+					this.sendMessage("Unmuted " + u.getUsername());
+					this.notifyOpsAndConsole(executor + " unmuted " + u.getUsername());
+
+					found = true;
+					break;
+				}
+			}
+
+			if (!found) {
+				this.userNotFound();
+			}
 		}
 	}
 
-	public CommandUnmute(User user, String line, boolean isConsole) {
+	public CommandUnmute(User user, P02PacketString line, boolean isConsole) {
 		super(isConsole ? null : user);
-
-		boolean hasPerm = false;
-		if (isConsole) {
-			hasPerm = true;
-		} else {
-			if (user.isOP) {
-				hasPerm = true;
-			}
-		}
-
-		if (hasPerm) {
-			if (Main.getInstance().getServer().e.CountArgs(line) == 1) {
-				runCommand(isConsole ? null : user, line, isConsole);
-			} else {
-				this.correctUssage("/unmute [Username]");
-			}
-		} else {
-			this.permissionDenied();
-		}
+		this.execute(true, "/unmute [Username]", line, 1);
 	}
 
 }

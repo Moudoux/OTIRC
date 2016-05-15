@@ -6,15 +6,17 @@ package com.opentexon.Server.Server.Commands;
 
 import com.opentexon.Server.Main.Main;
 import com.opentexon.Server.Server.User;
+import com.opentexon.Server.Server.Packets.P02PacketString;
 
 public class CommandBanlist extends Command {
 
-	private void runCommand(User user, String line, boolean isConsole) {
+	@Override
+	public void runCommand(User user, P02PacketString line, boolean isConsole) {
 		this.sendMessage("== Banned users ==");
 
 		int banned = 0;
 		String bannedUsers = "";
-		for (String ip : Main.getInstance().getServer().bannedUsers) {
+		for (String ip : Main.getInstance().getServer().permBannedUsers) {
 			banned += 1;
 			if (bannedUsers.equals("")) {
 				bannedUsers = ip;
@@ -30,27 +32,9 @@ public class CommandBanlist extends Command {
 		}
 	}
 
-	public CommandBanlist(User user, String line, boolean isConsole) {
+	public CommandBanlist(User user, P02PacketString line, boolean isConsole) {
 		super(isConsole ? null : user);
-
-		boolean hasPerm = false;
-		if (isConsole) {
-			hasPerm = true;
-		} else {
-			if (user.isOP) {
-				hasPerm = true;
-			}
-		}
-
-		if (hasPerm) {
-			if (Main.getInstance().getServer().e.CountArgs(line) == 0) {
-				runCommand(isConsole ? null : user, line, isConsole);
-			} else {
-				this.correctUssage("/banlist");
-			}
-		} else {
-			this.permissionDenied();
-		}
+		this.execute(true, "/banlist", line, 0);
 	}
 
 }

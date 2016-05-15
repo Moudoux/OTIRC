@@ -8,8 +8,13 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.Reader;
+import java.nio.charset.Charset;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import com.opentexon.Server.Server.User;
 
 /**
  * A collection of functions needed within the server and client, eg translating
@@ -24,6 +29,43 @@ public class StringUtils {
 	 * Pattern checking
 	 */
 
+	public static String getPrefix(User u) {
+		if (u != null) {
+			String inPrefix = "[";
+			if (u.getUsername().toLowerCase().equals("thijminecraft02")) {
+				inPrefix = inPrefix + "Beta Tester";
+			}
+
+			if (u.getUsername().toLowerCase().equals("mumbojet")) {
+				inPrefix = inPrefix + "Beta Tester";
+			}
+
+			if (u.getUsername().toLowerCase().equals("deftware")) {
+				inPrefix = inPrefix + "Creator";
+			}
+
+			if (inPrefix.equals("[")) {
+				inPrefix = inPrefix + "User]";
+			} else {
+				inPrefix = inPrefix + "]";
+			}
+
+			if (u.isOP()) {
+				String opPrefix = "[OP";
+
+				if (u.PermissionLevel == 1) {
+					opPrefix = opPrefix + "+]";
+				} else {
+					opPrefix = opPrefix + "]";
+				}
+				inPrefix = inPrefix + " " + opPrefix;
+			}
+
+			return inPrefix;
+		}
+		return "";
+	}
+
 	/**
 	 * Checks if a given string only contains numbers
 	 * 
@@ -37,6 +79,19 @@ public class StringUtils {
 		} else {
 			return false;
 		}
+	}
+
+	/**
+	 * Reads a text file
+	 * 
+	 * @param path
+	 * @param encoding
+	 * @return
+	 * @throws IOException
+	 */
+	public static String readFile(String path, Charset encoding) throws IOException {
+		byte[] encoded = Files.readAllBytes(Paths.get(path));
+		return new String(encoded, encoding);
 	}
 
 	/**

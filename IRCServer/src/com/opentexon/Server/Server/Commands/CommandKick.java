@@ -6,67 +6,73 @@ package com.opentexon.Server.Server.Commands;
 
 import com.opentexon.Server.Main.Main;
 import com.opentexon.Server.Server.User;
+import com.opentexon.Server.Server.Packets.P02PacketString;
+import com.opentexon.Utils.StringUtils;
 
 public class CommandKick extends Command {
 
-	private void runCommand(User user, String line, boolean isConsole) {
-		boolean found = false;
-
-		String reason = Main.getInstance().getServer().e.CountArgs(line) >= 2
-				? line.replace(line.split(" ")[0] + " " + line.split(" ")[1] + " ", "") : "";
-
+	private void kickAll(String executor, String reason) {
 		for (User u : Main.getInstance().getServer().users) {
-			if (u.Username.toLowerCase().equals(line.split(" ")[1].toLowerCase())) {
-
-				String executor = isConsole ? "Console" : user.Username;
-
-				u.WriteToClient(executor + " kicked you");
-
+			if (!u.isOP()) {
+				u.WriteToClient(new P02PacketString(null, "You were kicked by " + executor));
 				if (!reason.equals("")) {
-					u.WriteToClient("Kick reason: " + reason);
+					u.WriteToClient(new P02PacketString(null, "Reason: " + reason));
 				}
-
-				if (this.getServer().opUsers.contains(u.Ip)) {
-					this.getServer().opUsers.remove(u.Ip);
-				}
-
-				String uname = u.Username;
-				u.Destroy();
-
-				this.sendMessage("Kicked " + uname);
-				this.notifyOpsAndConsole(executor + " kicked " + uname);
-
-				found = true;
-				break;
 			}
 		}
+		this.notifyOpsAndConsole(executor + " kicked all non op users");
+	}
 
-		if (!found) {
-			this.userNotFound();
+	private void kickUser(User user, String reason, String executor) {
+		user.WriteToClient(new P02PacketString(null, "You were kicked by " + executor));
+		if (!reason.equals("")) {
+			user.WriteToClient(new P02PacketString(null, "Reason: " + reason));
+		}
+		String uname = user.getUsername();
+		user.Destroy();
+		this.notifyOpsAndConsole(executor + " kicked " + uname);
+	}
+
+	@Override
+	public void runCommand(User user, P02PacketString line, boolean isConsole) {
+		boolean PermissionPlus = false;
+		if (user != null && !isConsole) {
+			if (user.PermissionLevel == 1) {
+				PermissionPlus = true;
+			}
+		}
+		if (!PermissionPlus && this.getServer().isUserOP(line.getString().split(" ")[1]) && !isConsole) {
+			this.permissionDenied();
+		} else {
+			String reason = Main.getInstance().getServer().e.CountArgs(line.getString()) >= 2 ? line.getString()
+					.replace(line.getString().split(" ")[0] + " " + line.getString().split(" ")[1] + " ", "") : "";
+
+			String kick = line.getString().split(" ")[1];
+
+			if (kick.equals("*")) {
+				this.kickAll(isConsole ? "Console" : user.getUsername(), reason);
+			} else if (StringUtils.containsIPAddress(kick)) {
+				User kicked = this.getUserFromIP(kick);
+				if (kicked != null) {
+					this.kickUser(kicked, reason, isConsole ? "Console" : user.getUsername());
+				} else {
+					this.userNotFound();
+				}
+			} else {
+				User kicked = this.getUserFromUsername(kick);
+				if (kicked != null) {
+					this.kickUser(kicked, reason, isConsole ? "Console" : user.getUsername());
+				} else {
+					this.userNotFound();
+				}
+			}
+
 		}
 	}
 
-	public CommandKick(User user, String line, boolean isConsole) {
+	public CommandKick(User user, P02PacketString line, boolean isConsole) {
 		super(isConsole ? null : user);
-
-		boolean hasPerm = false;
-		if (isConsole) {
-			hasPerm = true;
-		} else {
-			if (user.isOP) {
-				hasPerm = true;
-			}
-		}
-
-		if (hasPerm) {
-			if (Main.getInstance().getServer().e.CountArgs(line) >= 1) {
-				runCommand(isConsole ? null : user, line, isConsole);
-			} else {
-				this.correctUssage("/kick [Username] [Reason]");
-			}
-		} else {
-			this.permissionDenied();
-		}
+		this.execute(true, "/kick [Username | IP | *] [Reason]", line, 1);
 	}
 
 }

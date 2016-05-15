@@ -4,65 +4,73 @@
  */
 package com.opentexon.Server.Server.Commands;
 
-import com.opentexon.Server.Main.Main;
+import com.opentexon.Server.Server.ConfigManager;
 import com.opentexon.Server.Server.User;
+import com.opentexon.Server.Server.Packets.P02PacketString;
 import com.opentexon.Utils.StringUtils;
 
 public class CommandOp extends Command {
 
-	private void runCommand(User user, String line, boolean isConsole) {
-		String ip = line.split(" ")[1];
-		if (StringUtils.containsIPAddress(line)) {
-			User oppedUser = this.getUserFromIP(ip);
-			if (!this.getServer().opUsers.contains(ip)) {
-				this.getServer().opUsers.add(ip);
+	private void opIP(User user, String ip, String executor, int permLevel) {
+		if (!this.getServer().opUsers.contains(ip)) {
+			this.getServer().opUsers.add(ip);
+		}
+		if (!this.getServer().opUsersPlus.contains(ip) && (permLevel == 1)) {
+			this.getServer().opUsersPlus.add(ip);
+		}
+		if (user != null) {
+			user.setOP(true);
+			user.WriteToClient(new P02PacketString(null, "You were opped by " + executor));
+		}
+		this.notifyOpsAndConsole(executor + " opped " + ((user == null) ? ip : user.getUsername()));
+		try {
+			ConfigManager.getInstance().addListValue("ops", ip);
+			if (permLevel == 1) {
+				ConfigManager.getInstance().addListValue("opsplus", ip);
 			}
-			String executor = isConsole ? "Console" : user.Username;
-			if (oppedUser != null) {
-				oppedUser.isOP = true;
-				this.notifyOpsAndConsole(executor + " opped " + oppedUser.Username);
-				oppedUser.WriteToClient(executor + " opped you");
-			} else {
-				this.notifyOpsAndConsole(executor + " opped " + ip);
+		} catch (Exception ex) {
+
+		}
+	}
+
+	@Override
+	public void runCommand(User user, P02PacketString line, boolean isConsole) {
+		boolean PermissionPlus = false;
+
+		if (user != null && !isConsole) {
+			if (user.PermissionLevel == 1) {
+				PermissionPlus = true;
 			}
+		}
+
+		if (!PermissionPlus && this.getServer().isUserOP(line.getString().split(" ")[1]) && !isConsole) {
+			this.permissionDenied();
 		} else {
-			User oppedUser = this.getUserFromUsername(ip);
-			String executor = isConsole ? "Console" : user.Username;
-			if (oppedUser != null) {
-				ip = oppedUser.Ip;
-				if (!this.getServer().opUsers.contains(ip)) {
-					this.getServer().opUsers.add(ip);
+			String ip = line.getString().split(" ")[1];
+
+			if (!StringUtils.containsIPAddress(line.getString())) {
+				User oppedUser = this.getUserFromUsername(ip);
+				if (oppedUser != null) {
+					ip = oppedUser.getIp();
 				}
-				oppedUser.isOP = true;
-				this.notifyOpsAndConsole(executor + " opped " + oppedUser.Username);
-				oppedUser.WriteToClient(executor + " opped you");
+			}
+
+			int PermissionLevel = 0;
+
+			if (this.getServer().e.CountArgs(line.getString()) == 2) {
+				PermissionLevel = Integer.valueOf(line.getString().split(" ")[2]);
+			}
+
+			if (StringUtils.containsIPAddress(ip)) {
+				this.opIP(this.getUserFromIP(ip), ip, isConsole ? "Console" : user.getUsername(), PermissionLevel);
 			} else {
 				this.userNotFound();
 			}
 		}
 	}
 
-	public CommandOp(User user, String line, boolean isConsole) {
+	public CommandOp(User user, P02PacketString line, boolean isConsole) {
 		super(isConsole ? null : user);
-
-		boolean hasPerm = false;
-		if (isConsole) {
-			hasPerm = true;
-		} else {
-			if (user.isOP) {
-				hasPerm = true;
-			}
-		}
-
-		if (hasPerm) {
-			if (Main.getInstance().getServer().e.CountArgs(line) == 1) {
-				runCommand(isConsole ? null : user, line, isConsole);
-			} else {
-				this.correctUssage("/op [Username/IP]");
-			}
-		} else {
-			this.permissionDenied();
-		}
+		this.execute(true, "/op [Username | IP] [Permission Level]", line, 1);
 	}
-
 }
